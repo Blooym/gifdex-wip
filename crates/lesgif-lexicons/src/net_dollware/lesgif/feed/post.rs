@@ -399,67 +399,67 @@ pub mod post_state {
     }
     /// State trait tracking which required fields have been set
     pub trait State: sealed::Sealed {
-        type Title;
-        type Tags;
         type Gif;
         type CreatedAt;
+        type Tags;
+        type Title;
     }
     /// Empty state - all required fields are unset
     pub struct Empty(());
     impl sealed::Sealed for Empty {}
     impl State for Empty {
-        type Title = Unset;
-        type Tags = Unset;
         type Gif = Unset;
         type CreatedAt = Unset;
-    }
-    ///State transition - sets the `title` field to Set
-    pub struct SetTitle<S: State = Empty>(PhantomData<fn() -> S>);
-    impl<S: State> sealed::Sealed for SetTitle<S> {}
-    impl<S: State> State for SetTitle<S> {
-        type Title = Set<members::title>;
-        type Tags = S::Tags;
-        type Gif = S::Gif;
-        type CreatedAt = S::CreatedAt;
-    }
-    ///State transition - sets the `tags` field to Set
-    pub struct SetTags<S: State = Empty>(PhantomData<fn() -> S>);
-    impl<S: State> sealed::Sealed for SetTags<S> {}
-    impl<S: State> State for SetTags<S> {
-        type Title = S::Title;
-        type Tags = Set<members::tags>;
-        type Gif = S::Gif;
-        type CreatedAt = S::CreatedAt;
+        type Tags = Unset;
+        type Title = Unset;
     }
     ///State transition - sets the `gif` field to Set
     pub struct SetGif<S: State = Empty>(PhantomData<fn() -> S>);
     impl<S: State> sealed::Sealed for SetGif<S> {}
     impl<S: State> State for SetGif<S> {
-        type Title = S::Title;
-        type Tags = S::Tags;
         type Gif = Set<members::gif>;
         type CreatedAt = S::CreatedAt;
+        type Tags = S::Tags;
+        type Title = S::Title;
     }
     ///State transition - sets the `created_at` field to Set
     pub struct SetCreatedAt<S: State = Empty>(PhantomData<fn() -> S>);
     impl<S: State> sealed::Sealed for SetCreatedAt<S> {}
     impl<S: State> State for SetCreatedAt<S> {
-        type Title = S::Title;
-        type Tags = S::Tags;
         type Gif = S::Gif;
         type CreatedAt = Set<members::created_at>;
+        type Tags = S::Tags;
+        type Title = S::Title;
+    }
+    ///State transition - sets the `tags` field to Set
+    pub struct SetTags<S: State = Empty>(PhantomData<fn() -> S>);
+    impl<S: State> sealed::Sealed for SetTags<S> {}
+    impl<S: State> State for SetTags<S> {
+        type Gif = S::Gif;
+        type CreatedAt = S::CreatedAt;
+        type Tags = Set<members::tags>;
+        type Title = S::Title;
+    }
+    ///State transition - sets the `title` field to Set
+    pub struct SetTitle<S: State = Empty>(PhantomData<fn() -> S>);
+    impl<S: State> sealed::Sealed for SetTitle<S> {}
+    impl<S: State> State for SetTitle<S> {
+        type Gif = S::Gif;
+        type CreatedAt = S::CreatedAt;
+        type Tags = S::Tags;
+        type Title = Set<members::title>;
     }
     /// Marker types for field names
     #[allow(non_camel_case_types)]
     pub mod members {
-        ///Marker type for the `title` field
-        pub struct title(());
-        ///Marker type for the `tags` field
-        pub struct tags(());
         ///Marker type for the `gif` field
         pub struct gif(());
         ///Marker type for the `created_at` field
         pub struct created_at(());
+        ///Marker type for the `tags` field
+        pub struct tags(());
+        ///Marker type for the `title` field
+        pub struct title(());
     }
 }
 
@@ -612,10 +612,10 @@ where
 impl<'a, S> PostBuilder<'a, S>
 where
     S: post_state::State,
-    S::Title: post_state::IsSet,
-    S::Tags: post_state::IsSet,
     S::Gif: post_state::IsSet,
     S::CreatedAt: post_state::IsSet,
+    S::Tags: post_state::IsSet,
+    S::Title: post_state::IsSet,
 {
     /// Build the final struct
     pub fn build(self) -> Post<'a> {
