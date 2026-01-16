@@ -1,2 +1,2 @@
 [env]
-SQLX_OFFLINE_DIR = { value = ".sqlx", relative = true }
+SQLX_OFFLINE_DIR = { value = "crates/.sqlx", relative = true }

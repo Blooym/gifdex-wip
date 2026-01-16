@@ -1,3 +1,7 @@
 [workspace]
 resolver = "2"
-members = ["crates/lesgif-ingest", "crates/lesgif-lexicons"]
+members = [
+    "crates/lesgif-appview",
+    "crates/lesgif-ingest",
+    "crates/lesgif-lexicons",
+]

@@ -12,7 +12,7 @@ impl Database {
             .max_connections(20)
             .connect(connect_string)
             .await?;
-        migrate!("../../migrations").run(&pool).await?;
+        migrate!("../sqlx-migrations").run(&pool).await?;
         Ok(Self { pool })
     }
 
