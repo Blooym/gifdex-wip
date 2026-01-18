@@ -97,7 +97,7 @@ pub async fn get_gif_handler(
         Err(err) => {
             warn!("failed to resolve DID {did}: {err:?}");
             return (
-                StatusCode::SERVICE_UNAVAILABLE,
+                StatusCode::BAD_GATEWAY,
                 "DID resolution failed - identity resolver may be temporarily unavailable.",
             )
                 .into_response();
