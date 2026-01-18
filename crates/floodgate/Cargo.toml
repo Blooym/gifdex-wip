@@ -1,0 +1,32 @@
+[package]
+name = "floodgate"
+edition = "2024"
+version = "0.1.0"
+
+[features]
+default = ["rustls"]
+rustls = ["tokio-tungstenite/rustls-tls-webpki-roots", "reqwest/rustls"]
+native-tls = ["tokio-tungstenite/native-tls", "reqwest/native-tls"]
+
+[dependencies]
+anyhow = { version = "1.0.99", features = ["backtrace"] }
+base64 = "0.22"
+futures = "0.3.31"
+futures-util = "0.3.31"
+jacquard-common = "0.9.5"
+log = "0.4.29"
+reqwest = { version = "0.13.1", default-features = false, features = [
+    "http2",
+    "charset",
+    "json",
+    "system-proxy",
+] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+thiserror = "2.0.17"
+tokio = { version = "1.49.0", default-features = false, features = ["sync"] }
+tokio-tungstenite = { version = "0.28.0", default-features = false, features = [
+    "connect",
+    "handshake",
+] }
+url = { version = "2.5.8", default-features = false }

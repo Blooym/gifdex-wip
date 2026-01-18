@@ -1,6 +1,6 @@
 {
   "lexicon": 1,
-  "id": "net.dollware.lesgif.actor.profile",
+  "id": "net.gifdex.actor.profile",
   "defs": {
     "main": {
       "type": "record",
@@ -24,8 +24,13 @@
             "type": "blob",
             "accept": ["image/png", "image/jpeg"],
             "maxSize": 1000000
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
           }
-        }
+        },
+        "required": ["createdAt"]
       }
     }
   }
