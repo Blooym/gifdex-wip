@@ -1,10 +1,9 @@
 use crate::api::{Event, EventData};
-use anyhow::{Context, Result, bail};
 use futures_util::{SinkExt, StreamExt};
 use jacquard_common::IntoStatic;
 use reqwest::header::{AUTHORIZATION, HeaderValue, USER_AGENT};
 use serde::Serialize;
-use std::{num::NonZero, sync::Arc};
+use std::{error::Error, num::NonZero, sync::Arc};
 use tokio::{
     sync::{Semaphore, mpsc},
     task::JoinSet,
@@ -28,18 +27,28 @@ pub struct ChannelConnectionHandle {
     semaphore: Arc<Semaphore>,
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum ConnectionError {
+    #[error("websocket error: {0}")]
+    WebSocketError(#[from] tokio_tungstenite::tungstenite::Error),
+    #[error("websocket handshake returned a failed http response: {0:?}")]
+    WebSocketHttpResponseFailure(tokio_tungstenite::tungstenite::handshake::client::Response),
+}
+
 impl ChannelConnectionHandle {
-    pub(crate) async fn connect(
+    async fn connect(
         base_url: Url,
-        password: Option<&str>,
+        auth_header: Option<HeaderValue>,
         max_concurrent: NonZero<usize>,
-    ) -> Result<Self> {
+    ) -> Result<Self, ConnectionError> {
         let mut websocket_url = base_url.clone();
         match websocket_url.scheme() {
             "http" => websocket_url.set_scheme("ws").unwrap(),
             "https" => websocket_url.set_scheme("wss").unwrap(),
             "ws" | "wss" => {}
-            _ => bail!("Invalid URL Scheme: {}", websocket_url.scheme()),
+            scheme @ _ => panic!(
+                "invalid scheme {scheme} given to ChannelConnectionHandle. ChannelBuilder checks the url scheme so this should be impossible!"
+            ),
         }
         websocket_url.set_path("/channel");
 
@@ -53,28 +62,15 @@ impl ChannelConnectionHandle {
                 env!("CARGO_PKG_VERSION")
             )),
         );
-        if let Some(password) = password {
-            use base64::Engine;
-            let encoded =
-                base64::engine::general_purpose::STANDARD.encode(format!("admin:{password}"));
-            request.headers_mut().insert(
-                AUTHORIZATION,
-                format!("Basic {encoded}")
-                    .parse()
-                    .context("failed to create authorization header")?,
-            );
+        if let Some(auth_header) = auth_header {
+            request.headers_mut().insert(AUTHORIZATION, auth_header);
         }
 
         // Open connection.
         log::debug!("opening websocket connection to {websocket_url}");
-        let (websocket_stream, response) = connect_async(request)
-            .await
-            .context("failed to connect to websocket")?;
+        let (websocket_stream, response) = connect_async(request).await?;
         if response.status().as_u16() != 101 && !response.status().is_success() {
-            bail!(
-                "websocket connection return unsuccessful response: {}",
-                response.status()
-            );
+            return Err(ConnectionError::WebSocketHttpResponseFailure(response));
         }
 
         // Open appropriate channels for communicating via websocket.
@@ -97,11 +93,13 @@ impl ChannelConnectionHandle {
 
     pub async fn handler<
         Handler: Fn(EventData<'static>) -> HandlerResult + Send + Sync + 'static,
-        HandlerResult: std::future::Future<Output = Result<()>> + Send,
+        // In principle i want the Error bound but since the handler functions in the gifdex ingester have anyhow::Error as their error type it cant be here (yet at least)
+        HandlerErr: std::fmt::Debug, /* + Error */
+        HandlerResult: std::future::Future<Output = Result<(), HandlerErr>> + Send,
     >(
         mut self,
         handler: Handler,
-    ) -> Result<()> {
+    ) {
         let handler = Arc::new(handler);
         let mut tasks = JoinSet::new();
         loop {
@@ -172,8 +170,6 @@ impl ChannelConnectionHandle {
                 }
             }
         }
-
-        Ok(())
     }
 
     async fn writer_task(
@@ -215,7 +211,7 @@ impl ChannelConnectionHandle {
 #[must_use]
 pub struct Channel {
     base_url: Url,
-    password: Option<String>,
+    auth_header: Option<HeaderValue>,
     max_concurrent: NonZero<usize>,
 }
 
@@ -226,10 +222,10 @@ impl Channel {
     }
 
     /// Connect to the channel and return a ChannelReceiver
-    pub async fn connect(&self) -> Result<ChannelConnectionHandle> {
+    pub async fn connect(&self) -> Result<ChannelConnectionHandle, ConnectionError> {
         ChannelConnectionHandle::connect(
             self.base_url.clone(),
-            self.password.as_deref(),
+            self.auth_header.clone(),
             self.max_concurrent,
         )
         .await
@@ -244,6 +240,14 @@ pub struct ChannelBuilder {
     base_url: Url,
     password: Option<String>,
     max_concurrent: NonZero<usize>,
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum ChannelBuildError {
+    #[error("Invalid URL scheme: {0}. Must be http, https, ws, or wss")]
+    InvalidUrlScheme(String),
+    #[error("password could not be turned")]
+    InvalidPassword,
 }
 
 impl ChannelBuilder {
@@ -269,18 +273,31 @@ impl ChannelBuilder {
     }
 
     /// Build and validate the channel configuration
-    pub fn build(self) -> Result<Channel> {
+    pub fn build(self) -> Result<Channel, ChannelBuildError> {
         // Validate the URL scheme
         if !matches!(self.base_url.scheme(), "http" | "https" | "ws" | "wss") {
-            return Err(anyhow::anyhow!(
-                "Invalid URL scheme: {}. Must be http, https, ws, or wss",
-                self.base_url.scheme()
+            return Err(ChannelBuildError::InvalidUrlScheme(
+                self.base_url.scheme().into(),
             ));
         }
 
+        let auth_header = if let Some(password_string) = self.password {
+            use base64::Engine;
+            let encoded = base64::engine::general_purpose::STANDARD
+                .encode(format!("admin:{password_string}"));
+
+            Some(
+                format!("Basic {encoded}")
+                    .parse()
+                    .map_err(|_| ChannelBuildError::InvalidPassword)?,
+            )
+        } else {
+            None
+        };
+
         Ok(Channel {
             base_url: self.base_url,
-            password: self.password,
+            auth_header,
             max_concurrent: self.max_concurrent,
         })
     }

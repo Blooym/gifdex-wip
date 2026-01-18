@@ -77,20 +77,13 @@ async fn main() -> Result<()> {
             }
         };
 
-        match connection
+        connection
             .handler(move |data| {
                 let state = state.clone();
                 handle_event(state, data)
             })
-            .await
-        {
-            Ok(()) => {
-                tracing::info!("Connection closed - reconnecting in 10 seconds");
-            }
-            Err(err) => {
-                tracing::error!("Handler failed - retrying in 10 seconds: {err:?}");
-            }
-        }
+            .await;
+        tracing::info!("Connection closed - reconnecting in 10 seconds");
         tokio::time::sleep(Duration::from_secs(10)).await;
     }
 }
