@@ -27,6 +27,7 @@ pub struct TapClient {
 }
 
 #[derive(thiserror::Error, Debug)]
+#[non_exhaustive]
 pub enum TapRequestError {
     #[error("network request failed due to: {0}")]
     NetworkError(#[from] reqwest::Error),
@@ -228,7 +229,13 @@ impl TapClient {
     ///
     /// Note: This carries the password from the TapClient if one was set.
     pub fn channel(&self) -> ChannelBuilder {
-        let mut builder = Channel::builder(self.base_url.clone());
+        let mut url: Url = self.base_url.clone();
+        match url.scheme() {
+            "http" => url.set_scheme("ws").unwrap(),
+            "https" => url.set_scheme("wss").unwrap(),
+            scheme @ _ => unreachable!("invalid scheme {scheme} in channel call."),
+        }
+        let mut builder = Channel::builder(url);
         if let Some(ref password) = self.password {
             builder = builder.password(password.clone());
         }

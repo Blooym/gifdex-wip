@@ -3,7 +3,7 @@ use futures_util::{SinkExt, StreamExt};
 use jacquard_common::IntoStatic;
 use reqwest::header::{AUTHORIZATION, HeaderValue, USER_AGENT};
 use serde::Serialize;
-use std::{error::Error, num::NonZero, sync::Arc};
+use std::{num::NonZero, sync::Arc};
 use tokio::{
     sync::{Semaphore, mpsc},
     task::JoinSet,
@@ -28,6 +28,7 @@ pub struct ChannelConnectionHandle {
 }
 
 #[derive(thiserror::Error, Debug)]
+#[non_exhaustive]
 pub enum ConnectionError {
     #[error("websocket error: {0}")]
     WebSocketError(#[from] tokio_tungstenite::tungstenite::Error),
@@ -37,23 +38,14 @@ pub enum ConnectionError {
 
 impl ChannelConnectionHandle {
     async fn connect(
-        base_url: Url,
+        mut url: Url,
         auth_header: Option<HeaderValue>,
         max_concurrent: NonZero<usize>,
     ) -> Result<Self, ConnectionError> {
-        let mut websocket_url = base_url.clone();
-        match websocket_url.scheme() {
-            "http" => websocket_url.set_scheme("ws").unwrap(),
-            "https" => websocket_url.set_scheme("wss").unwrap(),
-            "ws" | "wss" => {}
-            scheme @ _ => panic!(
-                "invalid scheme {scheme} given to ChannelConnectionHandle. ChannelBuilder checks the url scheme so this should be impossible!"
-            ),
-        }
-        websocket_url.set_path("/channel");
+        url.set_path("/channel");
 
         // Create websocket request with appropriate headers.
-        let mut request = websocket_url.as_str().into_client_request()?;
+        let mut request = url.as_str().into_client_request()?;
         request.headers_mut().insert(
             USER_AGENT,
             HeaderValue::from_static(concat!(
@@ -67,14 +59,14 @@ impl ChannelConnectionHandle {
         }
 
         // Open connection.
-        log::debug!("opening websocket connection to {websocket_url}");
+        log::debug!("opening websocket connection to {url}");
         let (websocket_stream, response) = connect_async(request).await?;
         if response.status().as_u16() != 101 && !response.status().is_success() {
             return Err(ConnectionError::WebSocketHttpResponseFailure(response));
         }
 
         // Open appropriate channels for communicating via websocket.
-        log::debug!("opened websocket connection to {websocket_url}");
+        log::debug!("opened websocket connection to {url}");
         let (write, read) = websocket_stream.split();
         let (ack_tx, ack_rx) = mpsc::unbounded_channel::<u64>();
         let semaphore = Arc::new(Semaphore::new(max_concurrent.get()));
@@ -93,7 +85,7 @@ impl ChannelConnectionHandle {
 
     pub async fn handler<
         Handler: Fn(EventData<'static>) -> HandlerResult + Send + Sync + 'static,
-        // In principle i want the Error bound but since the handler functions in the gifdex ingester have anyhow::Error as their error type it cant be here (yet at least)
+        // Should eventually add the Error bound once handler functions in the gifdex ingester work with it.
         HandlerErr: std::fmt::Debug, /* + Error */
         HandlerResult: std::future::Future<Output = Result<(), HandlerErr>> + Send,
     >(
@@ -275,7 +267,7 @@ impl ChannelBuilder {
     /// Build and validate the channel configuration
     pub fn build(self) -> Result<Channel, ChannelBuildError> {
         // Validate the URL scheme
-        if !matches!(self.base_url.scheme(), "http" | "https" | "ws" | "wss") {
+        if !matches!(self.base_url.scheme(), "ws" | "wss") {
             return Err(ChannelBuildError::InvalidUrlScheme(
                 self.base_url.scheme().into(),
             ));
