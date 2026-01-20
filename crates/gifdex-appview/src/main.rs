@@ -3,10 +3,7 @@ mod routes;
 
 use crate::routes::{
     com_atproto::sync::handle_get_repo_status,
-    net_gifdex::{
-        actor::{handle_get_profile, handle_get_profiles},
-        feed::handle_get_actor_posts,
-    },
+    net_gifdex::actor::{handle_get_actor_posts, handle_get_profile, handle_get_profiles},
 };
 use anyhow::Result;
 use axum::{
@@ -20,7 +17,7 @@ use clap::Parser;
 use database::Database;
 use dotenvy::dotenv;
 use gifdex_lexicons::net_gifdex::actor::{
-    get_profile::GetProfileRequest, get_profiles::GetProfilesRequest,
+    get_posts::GetPostsRequest, get_profile::GetProfileRequest, get_profiles::GetProfilesRequest,
 };
 use jacquard_api::com_atproto::sync::get_repo_status::GetRepoStatusRequest;
 use jacquard_axum::IntoRouter;
@@ -70,7 +67,7 @@ async fn main() -> Result<()> {
         .merge(GetProfileRequest::into_router(handle_get_profile))
         .merge(GetProfilesRequest::into_router(handle_get_profiles))
         .merge(GetRepoStatusRequest::into_router(handle_get_repo_status))
-        .merge(GetActorPostsRequest::into_router(handle_get_actor_posts))
+        .merge(GetPostsRequest::into_router(handle_get_actor_posts))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))

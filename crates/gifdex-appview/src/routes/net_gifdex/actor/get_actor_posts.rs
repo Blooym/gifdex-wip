@@ -1,5 +1,12 @@
 use crate::AppState;
 use axum::{Json, extract::State};
+use gifdex_lexicons::net_gifdex::{
+    actor::{
+        ProfileViewBasic,
+        get_posts::{GetPostsError, GetPostsOutput, GetPostsRequest},
+    },
+    feed::{PostFeedView, PostFeedViewMedia},
+};
 use jacquard_axum::{ExtractXrpc, XrpcErrorResponse};
 use jacquard_common::{
     IntoStatic,
@@ -11,8 +18,8 @@ use sqlx::query;
 
 pub async fn handle_get_actor_posts(
     State(state): State<AppState>,
-    ExtractXrpc(req): ExtractXrpc<GetActorPostsRequest>,
-) -> Result<Json<GetActorPostsOutput<'static>>, XrpcErrorResponse<GetActorPostsError<'static>>> {
+    ExtractXrpc(req): ExtractXrpc<GetPostsRequest>,
+) -> Result<Json<GetPostsOutput<'static>>, XrpcErrorResponse<GetPostsError<'static>>> {
     let account = query!(
         "SELECT did, display_name, handle, avatar_blob_cid, indexed_at
         FROM accounts WHERE did = $1",
@@ -23,7 +30,7 @@ pub async fn handle_get_actor_posts(
     .unwrap(); // TODO: Use Xrpc error.
 
     let Some(account) = account else {
-        return Err(XrpcError::Xrpc(GetActorPostsError::ActorNotFound(None)).into());
+        return Err(XrpcError::Xrpc(GetPostsError::ActorNotFound(None)).into());
     };
 
     // Build the profile view
@@ -118,7 +125,7 @@ pub async fn handle_get_actor_posts(
         })
         .collect();
 
-    Ok(Json(GetActorPostsOutput {
+    Ok(Json(GetPostsOutput {
         feed: post_views,
         cursor: cursor.map(|c| c.into()),
         extra_data: None,

@@ -21,8 +21,8 @@ pub async fn handle_identity(state: &AppState, identity: &IdentityEventData<'_>)
 
     // Update state of account incase of handle/status/is_active updates.
     match query!(
-        "INSERT INTO accounts (did, handle, is_active, status) \
-         VALUES ($1, $2, $3, $4) \
+        "INSERT INTO accounts (did, handle, is_active, status, created_at) \
+         VALUES ($1, $2, $3, $4, (extract(epoch from now()) * 1000)::BIGINT) \
          ON CONFLICT(did) DO UPDATE SET \
          handle = excluded.handle, \
          is_active = excluded.is_active, \

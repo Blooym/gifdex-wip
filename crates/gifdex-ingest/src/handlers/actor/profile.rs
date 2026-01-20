@@ -36,19 +36,19 @@ pub async fn handle_profile_create_event(
     }
 
     match query!(
-        "INSERT INTO accounts (did, display_name, description, pronouns, \
-         avatar_blob_cid) \
+        "INSERT INTO accounts (did, display_name, pronouns, \
+         avatar_blob_cid, created_at) \
          VALUES ($1, $2, $3, $4, $5) \
          ON CONFLICT(did) DO UPDATE SET \
          display_name = excluded.display_name, \
-         description = excluded.description, \
          pronouns = excluded.pronouns, \
-         avatar_blob_cid = excluded.avatar_blob_cid",
+         avatar_blob_cid = excluded.avatar_blob_cid, \
+         created_at = excluded.created_at",
         record_data.did.as_str(),
         data.display_name.as_deref(),
-        data.description.as_deref(),
         data.pronouns.as_deref(),
-        data.avatar.as_ref().map(|s| s.blob().cid().as_str())
+        data.avatar.as_ref().map(|s| s.blob().cid().as_str()),
+        data.created_at.as_ref().timestamp_millis()
     )
     .execute(state.database.executor())
     .await
@@ -76,11 +76,10 @@ pub async fn handle_profile_delete_event(
     }
     match query!(
         "UPDATE accounts SET \
-                             display_name = NULL, \
-                             description = NULL, \
-                             pronouns = NULL, \
-                             avatar_blob_cid = NULL \
-                             WHERE did = $1",
+         display_name = NULL, \
+         pronouns = NULL, \
+         avatar_blob_cid = NULL \
+         WHERE did = $1",
         record_data.did.as_str()
     )
     .execute(state.database.executor())

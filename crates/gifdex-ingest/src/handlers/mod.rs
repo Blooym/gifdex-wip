@@ -1,9 +1,10 @@
 mod actor;
 mod feed;
 mod identity;
-mod moderation;
+mod labeler;
 
 use crate::AppState;
+use crate::handlers::labeler::{handle_rule_create_event, handle_rule_delete_event};
 use crate::handlers::{
     actor::{handle_profile_create_event, handle_profile_delete_event},
     feed::{
@@ -11,7 +12,7 @@ use crate::handlers::{
         handle_post_delete,
     },
     identity::handle_identity,
-    moderation::{handle_label_create_event, handle_label_delete_event},
+    labeler::{handle_label_create_event, handle_label_delete_event},
 };
 use anyhow::bail;
 use floodgate::api::{EventData, RecordAction};
@@ -83,9 +84,9 @@ pub async fn handle_event(state: Arc<AppState>, data: EventData<'static>) -> any
                 }
                 net_gifdex::feed::favourite::Favourite::NSID => {
                     let json_str = serde_json::to_string(&payload.raw())?;
-                    let fav: net_gifdex::feed::favourite::Favourite =
+                    let favourite: net_gifdex::feed::favourite::Favourite =
                         serde_json::from_str(&json_str)?;
-                    handle_favourite_create_event(&state, &record, &fav).await
+                    handle_favourite_create_event(&state, &record, &favourite).await
                 }
                 net_gifdex::actor::profile::Profile::NSID => {
                     let json_str = serde_json::to_string(&payload.raw())?;
@@ -93,11 +94,15 @@ pub async fn handle_event(state: Arc<AppState>, data: EventData<'static>) -> any
                         serde_json::from_str(&json_str)?;
                     handle_profile_create_event(&state, &record, &profile).await
                 }
-                net_gifdex::moderation::label::Label::NSID => {
+                net_gifdex::labeler::label::Label::NSID => {
                     let json_str = serde_json::to_string(&payload.raw())?;
-                    let label: net_gifdex::moderation::label::Label =
-                        serde_json::from_str(&json_str)?;
+                    let label: net_gifdex::labeler::label::Label = serde_json::from_str(&json_str)?;
                     handle_label_create_event(&state, &record, &label).await
+                }
+                net_gifdex::labeler::rule::Rule::NSID => {
+                    let json_str = serde_json::to_string(&payload.raw())?;
+                    let rule: net_gifdex::labeler::rule::Rule = serde_json::from_str(&json_str)?;
+                    handle_rule_create_event(&state, &record, &rule).await
                 }
                 collection @ _ => {
                     tracing::error!(
@@ -115,8 +120,11 @@ pub async fn handle_event(state: Arc<AppState>, data: EventData<'static>) -> any
                 net_gifdex::actor::profile::Profile::NSID => {
                     handle_profile_delete_event(&state, &record).await
                 }
-                net_gifdex::moderation::label::Label::NSID => {
+                net_gifdex::labeler::label::Label::NSID => {
                     handle_label_delete_event(&state, &record).await
+                }
+                net_gifdex::labeler::rule::Rule::NSID => {
+                    handle_rule_delete_event(&state, &record).await
                 }
                 collection @ _ => {
                     tracing::error!(

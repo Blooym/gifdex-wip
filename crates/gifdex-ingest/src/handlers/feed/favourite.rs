@@ -30,7 +30,7 @@ pub async fn handle_favourite_create_event(
                         tracing::warn!("Rejected record: invalid TID in rkey");
                         return Ok(());
                     }
-                    if Cid::str(cid).is_valid() {
+                    if !Cid::str(cid).is_valid() {
                         tracing::warn!("Rejected record: invalid CID in rkey");
                         return Ok(());
                     };
@@ -57,14 +57,14 @@ pub async fn handle_favourite_create_event(
 
     match query!(
         "INSERT INTO post_favourites (did, rkey, post_did, \
-         post_rkey, created_at, ingested_at) \
+         post_rkey, created_at, indexed_at) \
          VALUES ($1, $2, $3, $4, $5, extract(epoch from now())::BIGINT) \
          ON CONFLICT (did, rkey) DO NOTHING",
         record_data.did.as_str(),
         record_data.rkey.as_str(),
         post_did.as_str(),
         post_rkey.as_ref(),
-        data.created_at.as_ref().timestamp()
+        data.created_at.as_ref().timestamp_millis()
     )
     .execute(state.database.executor())
     .await

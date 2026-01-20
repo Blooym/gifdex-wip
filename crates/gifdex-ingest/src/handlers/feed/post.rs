@@ -25,7 +25,7 @@ pub async fn handle_post_create(
                 return Ok(());
             }
             // Validate rkey CID matches blob CID
-            if cid != *data.gif.blob.blob().cid() {
+            if cid != *data.media.blob.blob().cid() {
                 warn!("Rejected record: rkey CID doesn't match blob CID");
                 return Ok(());
             }
@@ -38,13 +38,13 @@ pub async fn handle_post_create(
 
     // Loosely-validate the provided blob's mimetype + size.
     if !matches!(
-        data.gif.blob.blob().mime_type.as_str(),
+        data.media.blob.blob().mime_type.as_str(),
         "image/gif" | "image/webp"
     ) {
         warn!("Rejected record: blob isn't a valid mimetype");
         return Ok(());
     }
-    if data.gif.blob.blob().size == 10 * 1024 * 1024 {
+    if data.media.blob.blob().size == 10 * 1024 * 1024 {
         warn!("Rejected record: blob is above maximum size");
         return Ok(());
     }
@@ -68,23 +68,23 @@ pub async fn handle_post_create(
         });
 
     match query!(
-        "INSERT INTO posts (did, rkey, blob_cid, blob_mime_type, title, \
-         blob_alt_text, tags, languages, created_at, ingested_at) \
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, extract(epoch from now())::BIGINT) \
+        "INSERT INTO posts (did, rkey, media_blob_cid, media_blob_mime, title, \
+         media_blob_alt, tags, languages, created_at) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) \
          ON CONFLICT(did, rkey) DO UPDATE SET \
          title = excluded.title, \
-         blob_alt_text = excluded.blob_alt_text, \
+         media_blob_alt = excluded.media_blob_alt, \
          tags = excluded.tags, \
          edited_at = extract(epoch from now())::BIGINT",
         record_data.did.as_str(),
         record_data.rkey.as_str(),
-        data.gif.blob.blob().cid().as_str(),
-        data.gif.blob.blob().mime_type.as_str(),
+        data.media.blob.blob().cid().as_str(),
+        data.media.blob.blob().mime_type.as_str(),
         data.title.as_str(),
-        data.gif.alt.as_ref().map(|v| v.as_str()),
+        data.media.alt.as_ref().map(|v| v.as_str()),
         tags_array.as_deref(),
         languages_array.as_deref(),
-        data.created_at.as_ref().timestamp()
+        data.created_at.as_ref().timestamp_millis()
     )
     .execute(state.database.executor())
     .await

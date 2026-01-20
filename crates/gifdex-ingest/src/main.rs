@@ -6,7 +6,6 @@ use anyhow::Result;
 use clap::Parser;
 use dotenvy::dotenv;
 use floodgate::client::TapClient;
-use jacquard_common::types::did::Did;
 use std::{num::NonZero, sync::Arc, time::Duration};
 use tracing_subscriber::EnvFilter;
 use url::Url;
@@ -23,18 +22,11 @@ struct Arguments {
 
     #[clap(long = "tap-password", env = "LESGIF_INGEST_TAP_PASSWORD")]
     tap_password: Option<String>,
-
-    #[clap(
-        long = "moderation-accounts",
-        env = "LESGIF_INGEST_MODERATION_ACCOUNTS"
-    )]
-    moderation_account_dids: Vec<Did<'static>>,
 }
 
 #[derive(Clone)]
 struct AppState {
     database: Database,
-    moderation_account_dids: Vec<Did<'static>>,
 }
 
 #[tokio::main]
@@ -52,10 +44,7 @@ async fn main() -> Result<()> {
 
     // Connect to database and initialise state.
     let database = Database::new(&args.database_url).await?;
-    let state = Arc::new(AppState {
-        database,
-        moderation_account_dids: args.moderation_account_dids,
-    });
+    let state = Arc::new(AppState { database });
 
     // Setup the tap client and ensure things are healthy.
     let tap_client = TapClient::builder(args.tap_url.clone())
