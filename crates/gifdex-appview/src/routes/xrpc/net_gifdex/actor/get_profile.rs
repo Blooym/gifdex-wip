@@ -13,13 +13,13 @@ use sqlx::query;
 
 pub async fn handle_get_profile(
     State(state): State<AppState>,
-    ExtractXrpc(req): ExtractXrpc<GetProfileRequest>,
+    ExtractXrpc(request): ExtractXrpc<GetProfileRequest>,
 ) -> Result<Json<GetProfileOutput<'static>>, XrpcErrorResponse<GetProfileError<'static>>> {
     let account = query!(
-        "SELECT did, display_name, handle, avatar_blob_cid, indexed_at,
+        "SELECT did, handle, display_name, avatar_blob_cid, pronouns, indexed_at,
         (SELECT COUNT(*) FROM posts WHERE did = accounts.did) as \"post_count!\"
-        FROM accounts WHERE did = $1",
-        req.actor.as_str()
+        FROM accounts WHERE did = $1 OR handle = $1",
+        request.actor.as_str()
     )
     .fetch_optional(state.database.executor())
     .await
@@ -31,13 +31,14 @@ pub async fn handle_get_profile(
 
     Ok(Json(GetProfileOutput {
         value: ProfileView::new()
-            .did(req.actor)
+            .did(request.actor)
             .handle(
                 account
                     .handle
-                    .map(|handle| Handle::new_owned(handle).unwrap()),
+                    .map(|handle| handle.parse::<Handle>().unwrap()),
             )
-            .display_name(account.display_name.map(|s| s.into()))
+            .display_name(account.display_name.map(|display_name| display_name.into()))
+            .pronouns(account.pronouns.map(|pronouns| pronouns.into()))
             .avatar(account.avatar_blob_cid.map(|blob_cid| {
                 Uri::new_owned(
                     state

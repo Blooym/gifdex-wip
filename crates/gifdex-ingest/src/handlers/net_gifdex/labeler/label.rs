@@ -1,6 +1,8 @@
+use crate::AppState;
 use anyhow::Result;
 use floodgate::api::RecordEventData;
-use gifdex_lexicons::net_gifdex;
+use gifdex_lexicons::net_gifdex::{self, labeler::rule::Rule};
+use jacquard_common::types::collection::Collection;
 use sqlx::{PgTransaction, query};
 use tracing::{error, info};
 
@@ -8,6 +10,7 @@ pub async fn handle_label_create_event(
     record_data: &RecordEventData<'_>,
     data: &net_gifdex::labeler::label::Label<'_>,
     tx: &mut PgTransaction<'_>,
+    _state: &AppState,
 ) -> Result<()> {
     let (subject_did, subject_collection, subject_rkey) = (
         data.subject.authority().as_str(),
@@ -19,9 +22,7 @@ pub async fn handle_label_create_event(
         data.rule.collection().map(|v| v.as_str()),
         data.rule.rkey().map(|v| v.0.as_str()),
     ) {
-        (did, Some("net.gifdex.labeler.rule"), Some(rkey)) if did == record_data.did.as_str() => {
-            (did, rkey)
-        }
+        (did, Some(Rule::NSID), Some(rkey)) if did == record_data.did.as_str() => (did, rkey),
         (_, None, _) | (_, _, None) => {
             tracing::warn!(
                 rule_uri = data.rule.as_str(),
@@ -29,10 +30,11 @@ pub async fn handle_label_create_event(
             );
             return Ok(());
         }
-        (_, Some(collection), _) if collection != "net.gifdex.labeler.rule" => {
+        (_, Some(collection), _) if collection != Rule::NSID => {
             tracing::warn!(
                 rule_collection = collection,
-                "Rejected record: rule must reference net.gifdex.labeler.rule collection"
+                "Rejected record: rule must reference the {} collection",
+                Rule::NSID
             );
             return Ok(());
         }
@@ -94,6 +96,7 @@ pub async fn handle_label_create_event(
 pub async fn handle_label_delete_event(
     record_data: &RecordEventData<'_>,
     tx: &mut PgTransaction<'_>,
+    _state: &AppState,
 ) -> Result<()> {
     match query!(
         "DELETE FROM labels WHERE did = $1 AND rkey = $2",

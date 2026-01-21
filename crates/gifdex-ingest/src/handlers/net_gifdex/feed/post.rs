@@ -1,14 +1,18 @@
-use anyhow::Result;
+use crate::AppState;
+use anyhow::{Context, Result, bail};
 use floodgate::api::RecordEventData;
 use gifdex_lexicons::net_gifdex;
 use jacquard_common::types::{cid::Cid, tid::Tid};
 use sqlx::{PgTransaction, query};
+use std::time::Duration;
 use tracing::{error, info, warn};
+use url::Url;
 
 pub async fn handle_post_create(
     record_data: &RecordEventData<'_>,
     data: &net_gifdex::feed::post::Post<'_>,
     tx: &mut PgTransaction<'_>,
+    state: &AppState,
 ) -> Result<()> {
     // Validate rkey format as tid:cid and matches blob
     match record_data.rkey.split_once(":") {
@@ -48,12 +52,15 @@ pub async fn handle_post_create(
     }
 
     // Extract tag/lang data.
-    let tags_array = (!data.tags.is_empty()).then(|| {
-        data.tags
-            .iter()
-            .map(|cow| cow.to_string())
-            .collect::<Vec<String>>()
-    });
+    let tags_array = data
+        .tags
+        .as_ref()
+        .filter(|tags| !tags.is_empty())
+        .map(|tags| {
+            tags.iter()
+                .map(|cow| cow.to_string())
+                .collect::<Vec<String>>()
+        });
     let languages_array = data
         .languages
         .as_ref()
@@ -65,10 +72,27 @@ pub async fn handle_post_create(
                 .collect::<Vec<String>>()
         });
 
+    let pds = state
+        .tap_client
+        .resolve_did(&record_data.did)
+        .await?
+        .pds_endpoint()
+        .unwrap();
+    let response = validate_gif_or_webp(
+        &pds.join(&format!(
+            "/xrpc/com.atproto.sync.getBlob?did={}&cid={}",
+            record_data.did,
+            record_data.rkey.split_once(":").unwrap().1
+        ))?,
+        &state.http_client,
+    )
+    .await?;
+    println!("{response:?}");
+
     match query!(
-        "INSERT INTO posts (did, rkey, media_blob_cid, media_blob_mime, title, \
-         media_blob_alt, tags, languages, created_at) \
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) \
+        "INSERT INTO posts (did, rkey, title, media_blob_cid, media_blob_mime, \
+         media_blob_alt, media_blob_width, media_blob_height, tags, languages, created_at) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) \
          ON CONFLICT(did, rkey) DO UPDATE SET \
          title = excluded.title, \
          media_blob_alt = excluded.media_blob_alt, \
@@ -76,10 +100,12 @@ pub async fn handle_post_create(
          edited_at = extract(epoch from now())::BIGINT",
         record_data.did.as_str(),
         record_data.rkey.as_str(),
-        data.media.blob.blob().cid().as_str(),
-        data.media.blob.blob().mime_type.as_str(),
         data.title.as_str(),
+        data.media.blob.blob().cid().as_str(),
+        response.mime_type,
         data.media.alt.as_ref().map(|v| v.as_str()),
+        response.width as i64,
+        response.height as i64,
         tags_array.as_deref(),
         languages_array.as_deref(),
         data.created_at.as_ref().timestamp_millis()
@@ -101,6 +127,7 @@ pub async fn handle_post_create(
 pub async fn handle_post_delete(
     record_data: &RecordEventData<'_>,
     tx: &mut PgTransaction<'_>,
+    _state: &AppState,
 ) -> Result<()> {
     match query!(
         "DELETE FROM posts WHERE did = $1 AND rkey = $2",
@@ -119,4 +146,60 @@ pub async fn handle_post_delete(
             Err(err.into())
         }
     }
+}
+
+async fn validate_gif_or_webp(url: &Url, http_client: &reqwest::Client) -> Result<ImageInfo> {
+    let mut buffer = Vec::new();
+    let mut response = http_client
+        .get(url.as_str())
+        .timeout(Duration::from_secs(10))
+        .send()
+        .await
+        .context("Failed to fetch image")?;
+
+    while let Some(chunk) = response.chunk().await.context("Failed to read chunk")? {
+        buffer.extend_from_slice(&chunk);
+
+        // Try detection once we have enough bytes
+        if buffer.len() >= 32 {
+            // Validate MIME type first (fast check)
+            if let Some(kind) = infer::get(&buffer) {
+                let mime = kind.mime_type();
+                if mime != "image/gif" && mime != "image/webp" {
+                    bail!("Unsupported format: {}", mime);
+                }
+
+                // Then get dimensions
+                if let Ok(size) = imagesize::blob_size(&buffer) {
+                    // Validate dimensions
+                    if size.width > 10_000 || size.height > 10_000 {
+                        bail!("Dimensions too large: {}x{}", size.width, size.height);
+                    }
+
+                    if size.width == 0 || size.height == 0 {
+                        bail!("Invalid dimensions: {}x{}", size.width, size.height);
+                    }
+
+                    return Ok(ImageInfo {
+                        width: size.width,
+                        height: size.height,
+                        mime_type: mime.to_string(),
+                    });
+                }
+            }
+        }
+
+        if buffer.len() > 32_768 {
+            break;
+        }
+    }
+
+    bail!("Failed to detect image format and dimensions")
+}
+
+#[derive(Debug)]
+struct ImageInfo {
+    width: usize,
+    height: usize,
+    mime_type: String,
 }

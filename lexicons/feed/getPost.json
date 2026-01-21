@@ -1,0 +1,45 @@
+{
+  "lexicon": 1,
+  "id": "net.gifdex.feed.getPost",
+  "defs": {
+    "main": {
+      "type": "query",
+      "parameters": {
+        "type": "params",
+        "required": ["actor", "rkey"],
+        "properties": {
+          "actor": {
+            "type": "string",
+            "format": "did"
+          },
+          "rkey": {
+            "type": "string"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["post"],
+          "properties": {
+            "post": {
+              "type": "ref",
+              "ref": "net.gifdex.feed.defs#postView"
+            }
+          }
+        }
+      },
+      "errors": [
+        {
+          "name": "ActorNotFound",
+          "description": "The requested actor does not exist or has not been indexed yet."
+        },
+        {
+          "name": "PostNotFound",
+          "description": "The requested post does not exist or has not been indexed yet."
+        }
+      ]
+    }
+  }
+}

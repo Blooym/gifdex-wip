@@ -1,3 +1,4 @@
+use crate::AppState;
 use anyhow::Result;
 use floodgate::api::RecordEventData;
 use gifdex_lexicons::net_gifdex;
@@ -8,6 +9,7 @@ pub async fn handle_rule_create_event(
     record_data: &RecordEventData<'_>,
     data: &net_gifdex::labeler::rule::Rule<'_>,
     tx: &mut PgTransaction<'_>,
+    _state: &AppState,
 ) -> Result<()> {
     // Determine behaviour type and extract fields based on behaviour variant.
     let (behaviour, default_setting, adult_content, takedown) = match &data.behaviour {
@@ -71,6 +73,7 @@ pub async fn handle_rule_create_event(
 pub async fn handle_rule_delete_event(
     record_data: &RecordEventData<'_>,
     tx: &mut PgTransaction<'_>,
+    _state: &AppState,
 ) -> Result<()> {
     match query!(
         "DELETE FROM labeler_rules WHERE did = $1 AND rkey = $2",

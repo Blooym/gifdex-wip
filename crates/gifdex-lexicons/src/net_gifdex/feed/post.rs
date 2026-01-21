@@ -19,17 +19,15 @@
 pub struct Post<'a> {
     /// Client-declared timestamp when this post was originally created.
     pub created_at: jacquard_common::types::string::Datetime,
-    #[serde(skip_serializing_if = "std::option::Option::is_none")]
-    #[serde(borrow)]
-    pub labels: std::option::Option<Vec<jacquard_common::CowStr<'a>>>,
     /// Indicates human language of post content, including title and the media itself.
     #[serde(skip_serializing_if = "std::option::Option::is_none")]
     pub languages: std::option::Option<Vec<jacquard_common::types::string::Language>>,
     #[serde(borrow)]
-    pub media: crate::net_gifdex::feed::post::Media<'a>,
+    pub media: crate::net_gifdex::feed::post::PostMedia<'a>,
     /// Tags that apply to the content of the post, used for discoverability.
+    #[serde(skip_serializing_if = "std::option::Option::is_none")]
     #[serde(borrow)]
-    pub tags: Vec<jacquard_common::CowStr<'a>>,
+    pub tags: std::option::Option<Vec<jacquard_common::CowStr<'a>>>,
     /// The title of the post.
     #[serde(borrow)]
     pub title: jacquard_common::CowStr<'a>,
@@ -45,67 +43,51 @@ pub mod post_state {
     }
     /// State trait tracking which required fields have been set
     pub trait State: sealed::Sealed {
-        type Media;
         type Title;
         type CreatedAt;
-        type Tags;
+        type Media;
     }
     /// Empty state - all required fields are unset
     pub struct Empty(());
     impl sealed::Sealed for Empty {}
     impl State for Empty {
-        type Media = Unset;
         type Title = Unset;
         type CreatedAt = Unset;
-        type Tags = Unset;
-    }
-    ///State transition - sets the `media` field to Set
-    pub struct SetMedia<S: State = Empty>(PhantomData<fn() -> S>);
-    impl<S: State> sealed::Sealed for SetMedia<S> {}
-    impl<S: State> State for SetMedia<S> {
-        type Media = Set<members::media>;
-        type Title = S::Title;
-        type CreatedAt = S::CreatedAt;
-        type Tags = S::Tags;
+        type Media = Unset;
     }
     ///State transition - sets the `title` field to Set
     pub struct SetTitle<S: State = Empty>(PhantomData<fn() -> S>);
     impl<S: State> sealed::Sealed for SetTitle<S> {}
     impl<S: State> State for SetTitle<S> {
-        type Media = S::Media;
         type Title = Set<members::title>;
         type CreatedAt = S::CreatedAt;
-        type Tags = S::Tags;
+        type Media = S::Media;
     }
     ///State transition - sets the `created_at` field to Set
     pub struct SetCreatedAt<S: State = Empty>(PhantomData<fn() -> S>);
     impl<S: State> sealed::Sealed for SetCreatedAt<S> {}
     impl<S: State> State for SetCreatedAt<S> {
-        type Media = S::Media;
         type Title = S::Title;
         type CreatedAt = Set<members::created_at>;
-        type Tags = S::Tags;
-    }
-    ///State transition - sets the `tags` field to Set
-    pub struct SetTags<S: State = Empty>(PhantomData<fn() -> S>);
-    impl<S: State> sealed::Sealed for SetTags<S> {}
-    impl<S: State> State for SetTags<S> {
         type Media = S::Media;
+    }
+    ///State transition - sets the `media` field to Set
+    pub struct SetMedia<S: State = Empty>(PhantomData<fn() -> S>);
+    impl<S: State> sealed::Sealed for SetMedia<S> {}
+    impl<S: State> State for SetMedia<S> {
         type Title = S::Title;
         type CreatedAt = S::CreatedAt;
-        type Tags = Set<members::tags>;
+        type Media = Set<members::media>;
     }
     /// Marker types for field names
     #[allow(non_camel_case_types)]
     pub mod members {
-        ///Marker type for the `media` field
-        pub struct media(());
         ///Marker type for the `title` field
         pub struct title(());
         ///Marker type for the `created_at` field
         pub struct created_at(());
-        ///Marker type for the `tags` field
-        pub struct tags(());
+        ///Marker type for the `media` field
+        pub struct media(());
     }
 }
 
@@ -114,9 +96,8 @@ pub struct PostBuilder<'a, S: post_state::State> {
     _phantom_state: ::core::marker::PhantomData<fn() -> S>,
     __unsafe_private_named: (
         ::core::option::Option<jacquard_common::types::string::Datetime>,
-        ::core::option::Option<Vec<jacquard_common::CowStr<'a>>>,
         ::core::option::Option<Vec<jacquard_common::types::string::Language>>,
-        ::core::option::Option<crate::net_gifdex::feed::post::Media<'a>>,
+        ::core::option::Option<crate::net_gifdex::feed::post::PostMedia<'a>>,
         ::core::option::Option<Vec<jacquard_common::CowStr<'a>>>,
         ::core::option::Option<jacquard_common::CowStr<'a>>,
     ),
@@ -135,7 +116,7 @@ impl<'a> PostBuilder<'a, post_state::Empty> {
     pub fn new() -> Self {
         PostBuilder {
             _phantom_state: ::core::marker::PhantomData,
-            __unsafe_private_named: (None, None, None, None, None, None),
+            __unsafe_private_named: (None, None, None, None, None),
             _phantom: ::core::marker::PhantomData,
         }
     }
@@ -161,31 +142,12 @@ where
 }
 
 impl<'a, S: post_state::State> PostBuilder<'a, S> {
-    /// Set the `labels` field (optional)
-    pub fn labels(
-        mut self,
-        value: impl Into<Option<Vec<jacquard_common::CowStr<'a>>>>,
-    ) -> Self {
-        self.__unsafe_private_named.1 = value.into();
-        self
-    }
-    /// Set the `labels` field to an Option value (optional)
-    pub fn maybe_labels(
-        mut self,
-        value: Option<Vec<jacquard_common::CowStr<'a>>>,
-    ) -> Self {
-        self.__unsafe_private_named.1 = value;
-        self
-    }
-}
-
-impl<'a, S: post_state::State> PostBuilder<'a, S> {
     /// Set the `languages` field (optional)
     pub fn languages(
         mut self,
         value: impl Into<Option<Vec<jacquard_common::types::string::Language>>>,
     ) -> Self {
-        self.__unsafe_private_named.2 = value.into();
+        self.__unsafe_private_named.1 = value.into();
         self
     }
     /// Set the `languages` field to an Option value (optional)
@@ -193,7 +155,7 @@ impl<'a, S: post_state::State> PostBuilder<'a, S> {
         mut self,
         value: Option<Vec<jacquard_common::types::string::Language>>,
     ) -> Self {
-        self.__unsafe_private_named.2 = value;
+        self.__unsafe_private_named.1 = value;
         self
     }
 }
@@ -206,9 +168,9 @@ where
     /// Set the `media` field (required)
     pub fn media(
         mut self,
-        value: impl Into<crate::net_gifdex::feed::post::Media<'a>>,
+        value: impl Into<crate::net_gifdex::feed::post::PostMedia<'a>>,
     ) -> PostBuilder<'a, post_state::SetMedia<S>> {
-        self.__unsafe_private_named.3 = ::core::option::Option::Some(value.into());
+        self.__unsafe_private_named.2 = ::core::option::Option::Some(value.into());
         PostBuilder {
             _phantom_state: ::core::marker::PhantomData,
             __unsafe_private_named: self.__unsafe_private_named,
@@ -217,22 +179,22 @@ where
     }
 }
 
-impl<'a, S> PostBuilder<'a, S>
-where
-    S: post_state::State,
-    S::Tags: post_state::IsUnset,
-{
-    /// Set the `tags` field (required)
+impl<'a, S: post_state::State> PostBuilder<'a, S> {
+    /// Set the `tags` field (optional)
     pub fn tags(
         mut self,
-        value: impl Into<Vec<jacquard_common::CowStr<'a>>>,
-    ) -> PostBuilder<'a, post_state::SetTags<S>> {
-        self.__unsafe_private_named.4 = ::core::option::Option::Some(value.into());
-        PostBuilder {
-            _phantom_state: ::core::marker::PhantomData,
-            __unsafe_private_named: self.__unsafe_private_named,
-            _phantom: ::core::marker::PhantomData,
-        }
+        value: impl Into<Option<Vec<jacquard_common::CowStr<'a>>>>,
+    ) -> Self {
+        self.__unsafe_private_named.3 = value.into();
+        self
+    }
+    /// Set the `tags` field to an Option value (optional)
+    pub fn maybe_tags(
+        mut self,
+        value: Option<Vec<jacquard_common::CowStr<'a>>>,
+    ) -> Self {
+        self.__unsafe_private_named.3 = value;
+        self
     }
 }
 
@@ -246,7 +208,7 @@ where
         mut self,
         value: impl Into<jacquard_common::CowStr<'a>>,
     ) -> PostBuilder<'a, post_state::SetTitle<S>> {
-        self.__unsafe_private_named.5 = ::core::option::Option::Some(value.into());
+        self.__unsafe_private_named.4 = ::core::option::Option::Some(value.into());
         PostBuilder {
             _phantom_state: ::core::marker::PhantomData,
             __unsafe_private_named: self.__unsafe_private_named,
@@ -258,20 +220,18 @@ where
 impl<'a, S> PostBuilder<'a, S>
 where
     S: post_state::State,
-    S::Media: post_state::IsSet,
     S::Title: post_state::IsSet,
     S::CreatedAt: post_state::IsSet,
-    S::Tags: post_state::IsSet,
+    S::Media: post_state::IsSet,
 {
     /// Build the final struct
     pub fn build(self) -> Post<'a> {
         Post {
             created_at: self.__unsafe_private_named.0.unwrap(),
-            labels: self.__unsafe_private_named.1,
-            languages: self.__unsafe_private_named.2,
-            media: self.__unsafe_private_named.3.unwrap(),
-            tags: self.__unsafe_private_named.4.unwrap(),
-            title: self.__unsafe_private_named.5.unwrap(),
+            languages: self.__unsafe_private_named.1,
+            media: self.__unsafe_private_named.2.unwrap(),
+            tags: self.__unsafe_private_named.3,
+            title: self.__unsafe_private_named.4.unwrap(),
             extra_data: Default::default(),
         }
     }
@@ -285,11 +245,10 @@ where
     ) -> Post<'a> {
         Post {
             created_at: self.__unsafe_private_named.0.unwrap(),
-            labels: self.__unsafe_private_named.1,
-            languages: self.__unsafe_private_named.2,
-            media: self.__unsafe_private_named.3.unwrap(),
-            tags: self.__unsafe_private_named.4.unwrap(),
-            title: self.__unsafe_private_named.5.unwrap(),
+            languages: self.__unsafe_private_named.1,
+            media: self.__unsafe_private_named.2.unwrap(),
+            tags: self.__unsafe_private_named.3,
+            title: self.__unsafe_private_named.4.unwrap(),
             extra_data: Some(extra_data),
         }
     }
@@ -371,18 +330,17 @@ impl<'a> ::jacquard_lexicon::schema::LexiconSchema for Post<'a> {
     ) -> ::std::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
         if let Some(ref value) = self.languages {
             #[allow(unused_comparisons)]
-            if value.len() > 2usize {
+            if value.len() > 3usize {
                 return Err(::jacquard_lexicon::validation::ConstraintError::MaxLength {
                     path: ::jacquard_lexicon::validation::ValidationPath::from_field(
                         "languages",
                     ),
-                    max: 2usize,
+                    max: 3usize,
                     actual: value.len(),
                 });
             }
         }
-        {
-            let value = &self.tags;
+        if let Some(ref value) = self.tags {
             #[allow(unused_comparisons)]
             if value.len() > 5usize {
                 return Err(::jacquard_lexicon::validation::ConstraintError::MaxLength {
@@ -437,7 +395,6 @@ fn lexicon_doc_net_gifdex_feed_post() -> ::jacquard_lexicon::lexicon::LexiconDoc
                         required: Some(
                             vec![
                                 ::jacquard_common::smol_str::SmolStr::new_static("title"),
-                                ::jacquard_common::smol_str::SmolStr::new_static("tags"),
                                 ::jacquard_common::smol_str::SmolStr::new_static("media"),
                                 ::jacquard_common::smol_str::SmolStr::new_static("createdAt")
                             ],
@@ -470,26 +427,6 @@ fn lexicon_doc_net_gifdex_feed_post() -> ::jacquard_lexicon::lexicon::LexiconDoc
                                 }),
                             );
                             map.insert(
-                                ::jacquard_common::smol_str::SmolStr::new_static("labels"),
-                                ::jacquard_lexicon::lexicon::LexObjectProperty::Array(::jacquard_lexicon::lexicon::LexArray {
-                                    description: None,
-                                    items: ::jacquard_lexicon::lexicon::LexArrayItem::String(::jacquard_lexicon::lexicon::LexString {
-                                        description: None,
-                                        format: None,
-                                        default: None,
-                                        min_length: None,
-                                        max_length: None,
-                                        min_graphemes: None,
-                                        max_graphemes: None,
-                                        r#enum: None,
-                                        r#const: None,
-                                        known_values: None,
-                                    }),
-                                    min_length: None,
-                                    max_length: None,
-                                }),
-                            );
-                            map.insert(
                                 ::jacquard_common::smol_str::SmolStr::new_static(
                                     "languages",
                                 ),
@@ -508,20 +445,20 @@ fn lexicon_doc_net_gifdex_feed_post() -> ::jacquard_lexicon::lexicon::LexiconDoc
                                         min_length: None,
                                         max_length: None,
                                         min_graphemes: None,
-                                        max_graphemes: Some(5usize),
+                                        max_graphemes: None,
                                         r#enum: None,
                                         r#const: None,
                                         known_values: None,
                                     }),
                                     min_length: None,
-                                    max_length: Some(2usize),
+                                    max_length: Some(3usize),
                                 }),
                             );
                             map.insert(
                                 ::jacquard_common::smol_str::SmolStr::new_static("media"),
                                 ::jacquard_lexicon::lexicon::LexObjectProperty::Ref(::jacquard_lexicon::lexicon::LexRef {
                                     description: None,
-                                    r#ref: ::jacquard_common::CowStr::new_static("#media"),
+                                    r#ref: ::jacquard_common::CowStr::new_static("#postMedia"),
                                 }),
                             );
                             map.insert(
@@ -539,7 +476,7 @@ fn lexicon_doc_net_gifdex_feed_post() -> ::jacquard_lexicon::lexicon::LexiconDoc
                                         min_length: None,
                                         max_length: None,
                                         min_graphemes: None,
-                                        max_graphemes: Some(10usize),
+                                        max_graphemes: Some(40usize),
                                         r#enum: None,
                                         r#const: None,
                                         known_values: None,
@@ -573,9 +510,13 @@ fn lexicon_doc_net_gifdex_feed_post() -> ::jacquard_lexicon::lexicon::LexiconDoc
                 }),
             );
             map.insert(
-                ::jacquard_common::smol_str::SmolStr::new_static("media"),
+                ::jacquard_common::smol_str::SmolStr::new_static("postMedia"),
                 ::jacquard_lexicon::lexicon::LexUserType::Object(::jacquard_lexicon::lexicon::LexObject {
-                    description: None,
+                    description: Some(
+                        ::jacquard_common::CowStr::new_static(
+                            "Media blob with optional alt text",
+                        ),
+                    ),
                     required: Some(
                         vec![::jacquard_common::smol_str::SmolStr::new_static("blob")],
                     ),
@@ -592,7 +533,7 @@ fn lexicon_doc_net_gifdex_feed_post() -> ::jacquard_lexicon::lexicon::LexiconDoc
                                 min_length: None,
                                 max_length: None,
                                 min_graphemes: None,
-                                max_graphemes: None,
+                                max_graphemes: Some(5000usize),
                                 r#enum: None,
                                 r#const: None,
                                 known_values: None,
@@ -610,66 +551,12 @@ fn lexicon_doc_net_gifdex_feed_post() -> ::jacquard_lexicon::lexicon::LexiconDoc
                     },
                 }),
             );
-            map.insert(
-                ::jacquard_common::smol_str::SmolStr::new_static("selfLabel"),
-                ::jacquard_lexicon::lexicon::LexUserType::Object(::jacquard_lexicon::lexicon::LexObject {
-                    description: None,
-                    required: Some(
-                        vec![::jacquard_common::smol_str::SmolStr::new_static("rule")],
-                    ),
-                    nullable: None,
-                    properties: {
-                        #[allow(unused_mut)]
-                        let mut map = ::std::collections::BTreeMap::new();
-                        map.insert(
-                            ::jacquard_common::smol_str::SmolStr::new_static("reason"),
-                            ::jacquard_lexicon::lexicon::LexObjectProperty::String(::jacquard_lexicon::lexicon::LexString {
-                                description: Some(
-                                    ::jacquard_common::CowStr::new_static(
-                                        "Optional explanation for this label",
-                                    ),
-                                ),
-                                format: None,
-                                default: None,
-                                min_length: None,
-                                max_length: None,
-                                min_graphemes: None,
-                                max_graphemes: Some(200usize),
-                                r#enum: None,
-                                r#const: None,
-                                known_values: None,
-                            }),
-                        );
-                        map.insert(
-                            ::jacquard_common::smol_str::SmolStr::new_static("rule"),
-                            ::jacquard_lexicon::lexicon::LexObjectProperty::String(::jacquard_lexicon::lexicon::LexString {
-                                description: Some(
-                                    ::jacquard_common::CowStr::new_static(
-                                        "The rkey of the rule being applied (from net.gifdex.labeler.rule). Rule must enable selfLabel.",
-                                    ),
-                                ),
-                                format: Some(
-                                    ::jacquard_lexicon::lexicon::LexStringFormat::AtUri,
-                                ),
-                                default: None,
-                                min_length: None,
-                                max_length: None,
-                                min_graphemes: None,
-                                max_graphemes: None,
-                                r#enum: None,
-                                r#const: None,
-                                known_values: None,
-                            }),
-                        );
-                        map
-                    },
-                }),
-            );
             map
         },
     }
 }
 
+/// Media blob with optional alt text
 #[jacquard_derive::lexicon]
 #[derive(
     serde::Serialize,
@@ -681,7 +568,7 @@ fn lexicon_doc_net_gifdex_feed_post() -> ::jacquard_lexicon::lexicon::LexiconDoc
     jacquard_derive::IntoStatic
 )]
 #[serde(rename_all = "camelCase")]
-pub struct Media<'a> {
+pub struct PostMedia<'a> {
     #[serde(skip_serializing_if = "std::option::Option::is_none")]
     #[serde(borrow)]
     pub alt: std::option::Option<jacquard_common::CowStr<'a>>,
@@ -689,7 +576,7 @@ pub struct Media<'a> {
     pub blob: jacquard_common::types::blob::BlobRef<'a>,
 }
 
-pub mod media_state {
+pub mod post_media_state {
 
     pub use crate::builder_types::{Set, Unset, IsSet, IsUnset};
     #[allow(unused)]
@@ -722,7 +609,7 @@ pub mod media_state {
 }
 
 /// Builder for constructing an instance of this type
-pub struct MediaBuilder<'a, S: media_state::State> {
+pub struct PostMediaBuilder<'a, S: post_media_state::State> {
     _phantom_state: ::core::marker::PhantomData<fn() -> S>,
     __unsafe_private_named: (
         ::core::option::Option<jacquard_common::CowStr<'a>>,
@@ -731,17 +618,17 @@ pub struct MediaBuilder<'a, S: media_state::State> {
     _phantom: ::core::marker::PhantomData<&'a ()>,
 }
 
-impl<'a> Media<'a> {
+impl<'a> PostMedia<'a> {
     /// Create a new builder for this type
-    pub fn new() -> MediaBuilder<'a, media_state::Empty> {
-        MediaBuilder::new()
+    pub fn new() -> PostMediaBuilder<'a, post_media_state::Empty> {
+        PostMediaBuilder::new()
     }
 }
 
-impl<'a> MediaBuilder<'a, media_state::Empty> {
+impl<'a> PostMediaBuilder<'a, post_media_state::Empty> {
     /// Create a new builder with all fields unset
     pub fn new() -> Self {
-        MediaBuilder {
+        PostMediaBuilder {
             _phantom_state: ::core::marker::PhantomData,
             __unsafe_private_named: (None, None),
             _phantom: ::core::marker::PhantomData,
@@ -749,7 +636,7 @@ impl<'a> MediaBuilder<'a, media_state::Empty> {
     }
 }
 
-impl<'a, S: media_state::State> MediaBuilder<'a, S> {
+impl<'a, S: post_media_state::State> PostMediaBuilder<'a, S> {
     /// Set the `alt` field (optional)
     pub fn alt(mut self, value: impl Into<Option<jacquard_common::CowStr<'a>>>) -> Self {
         self.__unsafe_private_named.0 = value.into();
@@ -762,18 +649,18 @@ impl<'a, S: media_state::State> MediaBuilder<'a, S> {
     }
 }
 
-impl<'a, S> MediaBuilder<'a, S>
+impl<'a, S> PostMediaBuilder<'a, S>
 where
-    S: media_state::State,
-    S::Blob: media_state::IsUnset,
+    S: post_media_state::State,
+    S::Blob: post_media_state::IsUnset,
 {
     /// Set the `blob` field (required)
     pub fn blob(
         mut self,
         value: impl Into<jacquard_common::types::blob::BlobRef<'a>>,
-    ) -> MediaBuilder<'a, media_state::SetBlob<S>> {
+    ) -> PostMediaBuilder<'a, post_media_state::SetBlob<S>> {
         self.__unsafe_private_named.1 = ::core::option::Option::Some(value.into());
-        MediaBuilder {
+        PostMediaBuilder {
             _phantom_state: ::core::marker::PhantomData,
             __unsafe_private_named: self.__unsafe_private_named,
             _phantom: ::core::marker::PhantomData,
@@ -781,14 +668,14 @@ where
     }
 }
 
-impl<'a, S> MediaBuilder<'a, S>
+impl<'a, S> PostMediaBuilder<'a, S>
 where
-    S: media_state::State,
-    S::Blob: media_state::IsSet,
+    S: post_media_state::State,
+    S::Blob: post_media_state::IsSet,
 {
     /// Build the final struct
-    pub fn build(self) -> Media<'a> {
-        Media {
+    pub fn build(self) -> PostMedia<'a> {
+        PostMedia {
             alt: self.__unsafe_private_named.0,
             blob: self.__unsafe_private_named.1.unwrap(),
             extra_data: Default::default(),
@@ -801,8 +688,8 @@ where
             jacquard_common::smol_str::SmolStr,
             jacquard_common::types::value::Data<'a>,
         >,
-    ) -> Media<'a> {
-        Media {
+    ) -> PostMedia<'a> {
+        PostMedia {
             alt: self.__unsafe_private_named.0,
             blob: self.__unsafe_private_named.1.unwrap(),
             extra_data: Some(extra_data),
@@ -810,12 +697,12 @@ where
     }
 }
 
-impl<'a> ::jacquard_lexicon::schema::LexiconSchema for Media<'a> {
+impl<'a> ::jacquard_lexicon::schema::LexiconSchema for PostMedia<'a> {
     fn nsid() -> &'static str {
         "net.gifdex.feed.post"
     }
     fn def_name() -> &'static str {
-        "media"
+        "postMedia"
     }
     fn lexicon_doc() -> ::jacquard_lexicon::lexicon::LexiconDoc<'static> {
         lexicon_doc_net_gifdex_feed_post()
@@ -823,181 +710,19 @@ impl<'a> ::jacquard_lexicon::schema::LexiconSchema for Media<'a> {
     fn validate(
         &self,
     ) -> ::std::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
-        Ok(())
-    }
-}
-
-#[jacquard_derive::lexicon]
-#[derive(
-    serde::Serialize,
-    serde::Deserialize,
-    Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    jacquard_derive::IntoStatic
-)]
-#[serde(rename_all = "camelCase")]
-pub struct SelfLabel<'a> {
-    /// Optional explanation for this label
-    #[serde(skip_serializing_if = "std::option::Option::is_none")]
-    #[serde(borrow)]
-    pub reason: std::option::Option<jacquard_common::CowStr<'a>>,
-    /// The rkey of the rule being applied (from net.gifdex.labeler.rule). Rule must enable selfLabel.
-    #[serde(borrow)]
-    pub rule: jacquard_common::types::string::AtUri<'a>,
-}
-
-pub mod self_label_state {
-
-    pub use crate::builder_types::{Set, Unset, IsSet, IsUnset};
-    #[allow(unused)]
-    use ::core::marker::PhantomData;
-    mod sealed {
-        pub trait Sealed {}
-    }
-    /// State trait tracking which required fields have been set
-    pub trait State: sealed::Sealed {
-        type Rule;
-    }
-    /// Empty state - all required fields are unset
-    pub struct Empty(());
-    impl sealed::Sealed for Empty {}
-    impl State for Empty {
-        type Rule = Unset;
-    }
-    ///State transition - sets the `rule` field to Set
-    pub struct SetRule<S: State = Empty>(PhantomData<fn() -> S>);
-    impl<S: State> sealed::Sealed for SetRule<S> {}
-    impl<S: State> State for SetRule<S> {
-        type Rule = Set<members::rule>;
-    }
-    /// Marker types for field names
-    #[allow(non_camel_case_types)]
-    pub mod members {
-        ///Marker type for the `rule` field
-        pub struct rule(());
-    }
-}
-
-/// Builder for constructing an instance of this type
-pub struct SelfLabelBuilder<'a, S: self_label_state::State> {
-    _phantom_state: ::core::marker::PhantomData<fn() -> S>,
-    __unsafe_private_named: (
-        ::core::option::Option<jacquard_common::CowStr<'a>>,
-        ::core::option::Option<jacquard_common::types::string::AtUri<'a>>,
-    ),
-    _phantom: ::core::marker::PhantomData<&'a ()>,
-}
-
-impl<'a> SelfLabel<'a> {
-    /// Create a new builder for this type
-    pub fn new() -> SelfLabelBuilder<'a, self_label_state::Empty> {
-        SelfLabelBuilder::new()
-    }
-}
-
-impl<'a> SelfLabelBuilder<'a, self_label_state::Empty> {
-    /// Create a new builder with all fields unset
-    pub fn new() -> Self {
-        SelfLabelBuilder {
-            _phantom_state: ::core::marker::PhantomData,
-            __unsafe_private_named: (None, None),
-            _phantom: ::core::marker::PhantomData,
-        }
-    }
-}
-
-impl<'a, S: self_label_state::State> SelfLabelBuilder<'a, S> {
-    /// Set the `reason` field (optional)
-    pub fn reason(
-        mut self,
-        value: impl Into<Option<jacquard_common::CowStr<'a>>>,
-    ) -> Self {
-        self.__unsafe_private_named.0 = value.into();
-        self
-    }
-    /// Set the `reason` field to an Option value (optional)
-    pub fn maybe_reason(mut self, value: Option<jacquard_common::CowStr<'a>>) -> Self {
-        self.__unsafe_private_named.0 = value;
-        self
-    }
-}
-
-impl<'a, S> SelfLabelBuilder<'a, S>
-where
-    S: self_label_state::State,
-    S::Rule: self_label_state::IsUnset,
-{
-    /// Set the `rule` field (required)
-    pub fn rule(
-        mut self,
-        value: impl Into<jacquard_common::types::string::AtUri<'a>>,
-    ) -> SelfLabelBuilder<'a, self_label_state::SetRule<S>> {
-        self.__unsafe_private_named.1 = ::core::option::Option::Some(value.into());
-        SelfLabelBuilder {
-            _phantom_state: ::core::marker::PhantomData,
-            __unsafe_private_named: self.__unsafe_private_named,
-            _phantom: ::core::marker::PhantomData,
-        }
-    }
-}
-
-impl<'a, S> SelfLabelBuilder<'a, S>
-where
-    S: self_label_state::State,
-    S::Rule: self_label_state::IsSet,
-{
-    /// Build the final struct
-    pub fn build(self) -> SelfLabel<'a> {
-        SelfLabel {
-            reason: self.__unsafe_private_named.0,
-            rule: self.__unsafe_private_named.1.unwrap(),
-            extra_data: Default::default(),
-        }
-    }
-    /// Build the final struct with custom extra_data
-    pub fn build_with_data(
-        self,
-        extra_data: std::collections::BTreeMap<
-            jacquard_common::smol_str::SmolStr,
-            jacquard_common::types::value::Data<'a>,
-        >,
-    ) -> SelfLabel<'a> {
-        SelfLabel {
-            reason: self.__unsafe_private_named.0,
-            rule: self.__unsafe_private_named.1.unwrap(),
-            extra_data: Some(extra_data),
-        }
-    }
-}
-
-impl<'a> ::jacquard_lexicon::schema::LexiconSchema for SelfLabel<'a> {
-    fn nsid() -> &'static str {
-        "net.gifdex.feed.post"
-    }
-    fn def_name() -> &'static str {
-        "selfLabel"
-    }
-    fn lexicon_doc() -> ::jacquard_lexicon::lexicon::LexiconDoc<'static> {
-        lexicon_doc_net_gifdex_feed_post()
-    }
-    fn validate(
-        &self,
-    ) -> ::std::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
-        if let Some(ref value) = self.reason {
+        if let Some(ref value) = self.alt {
             {
                 let count = ::unicode_segmentation::UnicodeSegmentation::graphemes(
                         value.as_ref(),
                         true,
                     )
                     .count();
-                if count > 200usize {
+                if count > 5000usize {
                     return Err(::jacquard_lexicon::validation::ConstraintError::MaxGraphemes {
                         path: ::jacquard_lexicon::validation::ValidationPath::from_field(
-                            "reason",
+                            "alt",
                         ),
-                        max: 200usize,
+                        max: 5000usize,
                         actual: count,
                     });
                 }

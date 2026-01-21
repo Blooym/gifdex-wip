@@ -2,12 +2,13 @@ use crate::{AppState, MAX_AVATAR_SIZE, routes::stream_with_limit};
 use axum::{
     body::Body,
     extract::{Path, State},
-    http::{Response, StatusCode},
+    http::{Response, StatusCode, header},
     response::IntoResponse,
 };
 use cid::Cid;
-use floodgate::extern_types::did::Did;
+use jacquard_common::types::did::Did;
 use multihash_codetable::{Code, MultihashDigest};
+use reqwest::Url;
 use sqlx::query;
 use std::sync::Arc;
 use tracing::warn;
@@ -63,24 +64,28 @@ pub async fn get_avatar_handler(
         }
     };
 
-    // Get the user's PDS URL from their DID document
-    let pds_url = match state.tap_client.resolve_did(&did).await {
-        Ok(doc) => match doc.pds_endpoint() {
-            Some(url) => url,
-            None => {
-                warn!("No PDS endpoint found for {did}");
-                return (
-                    StatusCode::NOT_FOUND,
-                    "No AtprotoPersonalDataServer service endpoint found in resolved DID document",
-                )
-                    .into_response();
-            }
-        },
+    // Get the user's PDS URL from our accounts data.
+    let pds_url = match query!("SELECT pds FROM accounts WHERE did = $1", did.as_str())
+        .fetch_optional(state.database.executor())
+        .await
+    {
+        Ok(Some(record)) if record.pds.is_some() => {
+            Url::parse(&format!("https://{}", record.pds.unwrap())).unwrap()
+        }
+        Ok(Some(_)) | Ok(None) => {
+            warn!("No PDS endpoint found for {did}");
+            return (
+                StatusCode::NOT_FOUND,
+                "No AtprotoPersonalDataServer service endpoint found in resolved DID document",
+            )
+                .into_response();
+        }
         Err(err) => {
             warn!("failed to resolve DID {did}: {err:?}");
             return (StatusCode::BAD_GATEWAY, "Failed to resolve DID").into_response();
         }
     };
+
     let blob_url = {
         let mut url = match pds_url.join("/xrpc/com.atproto.sync.getBlob") {
             Ok(url) => url,
@@ -134,8 +139,8 @@ pub async fn get_avatar_handler(
         warn!("CID mismatch: expected {cid}, computed {computed_cid}");
         return StatusCode::BAD_GATEWAY.into_response();
     }
-    let mime_type = match infer::get(&bytes).map(|t| t.mime_type()) {
-        Some(m) if matches!(m, "image/png" | "image/jpeg" | "image/webp") => m,
+    let mime_type = match infer::get(&bytes).map(|t| t) {
+        Some(m) if matches!(m.mime_type(), "image/png" | "image/jpeg" | "image/webp") => m,
         format @ _ => {
             warn!("invalid or unsupported image format: {format:?}");
             return StatusCode::UNPROCESSABLE_ENTITY.into_response();
@@ -144,10 +149,21 @@ pub async fn get_avatar_handler(
 
     Response::builder()
         .status(StatusCode::OK)
-        .header("Content-Type", mime_type)
-        .header("Content-Security-Policy", "default-src 'none'; sandbox")
-        .header("X-Content-Type-Options", "nosniff")
-        .header("Cache-Control", "public, max-age=604800")
+        .header(header::CONTENT_TYPE, mime_type.mime_type())
+        .header(
+            header::CONTENT_SECURITY_POLICY,
+            "default-src 'none'; sandbox",
+        )
+        .header(header::X_CONTENT_TYPE_OPTIONS, "nosniff")
+        .header(header::CACHE_CONTROL, "public, max-age=604800")
+        .header(
+            header::CONTENT_DISPOSITION,
+            format!(
+                "attachment; filename=\"{}.{}\"",
+                "avatar",
+                mime_type.extension()
+            ),
+        )
         .header(
             "Upstream-PDS",
             format!(" {}", pds_url.host_str().unwrap_or("unknown")),

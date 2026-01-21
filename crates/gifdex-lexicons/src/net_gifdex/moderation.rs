@@ -3,7 +3,4 @@
 // This file was automatically generated from Lexicon schemas.
 // Any manual changes will be overwritten on the next regeneration.
 
-pub mod actor;
-pub mod feed;
-pub mod labeler;
-pub mod moderation;
+pub mod create_report;

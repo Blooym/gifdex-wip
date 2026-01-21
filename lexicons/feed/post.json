@@ -7,86 +7,58 @@
       "key": "any",
       "record": {
         "type": "object",
+        "required": ["title", "media", "createdAt"],
         "properties": {
           "title": {
             "type": "string",
             "maxGraphemes": 80,
             "description": "The title of the post."
           },
+          "media": {
+            "type": "ref",
+            "ref": "#postMedia"
+          },
           "tags": {
             "type": "array",
+            "description": "Tags that apply to the content of the post, used for discoverability.",
             "items": {
-              "maxGraphemes": 10,
-              "type": "string"
+              "type": "string",
+              "maxGraphemes": 40
             },
-            "maxLength": 5,
-            "description": "Tags that apply to the content of the post, used for discoverability."
+            "maxLength": 5
           },
           "languages": {
             "type": "array",
+            "description": "Indicates human language of post content, including title and the media itself.",
             "items": {
-              "maxGraphemes": 5,
               "type": "string",
               "format": "language"
             },
-            "maxLength": 2,
-            "description": "Indicates human language of post content, including title and the media itself."
-          },
-          "media": {
-            "type": "ref",
-            "ref": "#media"
-          },
-          "labels": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "unlisted",
-                "nsfw",
-                "content-warning",
-                "gore",
-                "flashing-lights"
-              ]
-            }
+            "maxLength": 3
           },
           "createdAt": {
             "type": "string",
             "format": "datetime",
             "description": "Client-declared timestamp when this post was originally created."
           }
-        },
-        "required": ["title", "tags", "media", "createdAt"]
+        }
       }
     },
-    "media": {
+    "postMedia": {
       "type": "object",
+      "description": "Media blob with optional alt text",
+      "required": ["blob"],
       "properties": {
         "alt": {
-          "type": "string"
+          "type": "string",
+          "maxGraphemes": 5000
         },
         "blob": {
           "type": "blob",
           "accept": ["image/webp"],
-          "maxSize": 1000000
+          "maxSize": 5000000
         }
-      },
-      "required": ["blob"]
-    },
-    "selfLabel": {
-      "type": "object",
-      "properties": {
-        "rule": {
-          "type": "string",
-          "format": "at-uri",
-          "description": "The rkey of the rule being applied (from net.gifdex.labeler.rule). Rule must enable selfLabel."
-        },
-        "reason": {
-          "type": "string",
-          "maxGraphemes": 200,
-          "description": "Optional explanation for this label"
-        }
-      },
-      "required": ["rule"]
+      }
     }
   }
 }

@@ -2,30 +2,57 @@ mod database;
 mod routes;
 
 use crate::routes::{
-    com_atproto::sync::handle_get_repo_status,
-    net_gifdex::actor::{handle_get_actor_posts, handle_get_profile, handle_get_profiles},
+    handle_index,
+    well_known::handle_well_known_did,
+    xrpc::{
+        com_atproto::sync::handle_get_repo_status,
+        health::handle_health,
+        net_gifdex::{
+            actor::{handle_get_profile, handle_get_profiles},
+            feed::{handle_get_post, handle_get_posts_by_actor, handle_get_posts_by_query},
+            moderation::handle_create_report,
+        },
+    },
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use axum::{
     Router,
     extract::Request,
-    http::{HeaderValue, header},
+    http::{HeaderValue, Method, header},
     middleware::{self as axum_middleware, Next},
     routing::get,
 };
 use clap::Parser;
 use database::Database;
 use dotenvy::dotenv;
-use gifdex_lexicons::net_gifdex::actor::{
-    get_posts::GetPostsRequest, get_profile::GetProfileRequest, get_profiles::GetProfilesRequest,
+use gifdex_lexicons::net_gifdex::{
+    actor::{get_profile::GetProfileRequest, get_profiles::GetProfilesRequest},
+    feed::{
+        get_post::GetPostRequest, get_posts_by_actor::GetPostsByActorRequest,
+        get_posts_by_query::GetPostsByQueryRequest,
+    },
+    moderation::create_report::CreateReportRequest,
 };
 use jacquard_api::com_atproto::sync::get_repo_status::GetRepoStatusRequest;
-use jacquard_axum::IntoRouter;
-use jacquard_common::url::Url;
-use std::{net::SocketAddr, sync::Arc};
+use jacquard_axum::{
+    IntoRouter,
+    service_auth::{ServiceAuth, ServiceAuthConfig},
+};
+use jacquard_common::{
+    Data, IntoStatic,
+    types::{
+        did::Did,
+        did_doc::{DidDocument, Service},
+        string::AtprotoStr,
+    },
+    url::Url,
+};
+use jacquard_identity::{JacquardResolver, resolver::ResolverOptions};
+use std::{collections::BTreeMap, net::SocketAddr, sync::Arc};
 use tokio::{net::TcpListener, signal};
 use tower_http::{
     catch_panic::CatchPanicLayer,
+    cors::{Any, CorsLayer},
     normalize_path::NormalizePathLayer,
     trace::{self, DefaultOnFailure, DefaultOnRequest, DefaultOnResponse, TraceLayer},
 };
@@ -35,22 +62,59 @@ use tracing_subscriber::EnvFilter;
 #[derive(Debug, Clone, Parser)]
 #[clap(author, about, version)]
 struct Arguments {
+    /// Local socket address to serve the AppView on.
     #[arg(
         long = "address",
         env = "GIFDEX_APPVIEW_ADDRESS",
         default_value = "127.0.0.1:8255"
     )]
     address: SocketAddr,
-    #[arg(long = "database-url", env = "DATABASE_URL")]
+
+    /// Postgres database to use for AppView data storage.
+    ///
+    /// This should be the same database used for all other services that read/write application data.
+    #[arg(
+        long = "database-url",
+        env = "GIFDEX_APPVIEW_DATABASE_URL",
+        env = "DATABASE_URL"
+    )]
     database_url: String,
-    #[arg(long = "cdn-url", env = "GIFDEX_CDN_URL")]
-    cdn_url: Url,
+
+    /// Host to use for serving media from.
+    ///
+    /// The host must serve Gifdex-compatiable endpoints with the expected formats.
+    #[arg(long = "cdn", env = "GIFDEX_APPVIEW_CDN")]
+    cdn: Url,
+
+    /// Host that this AppView will reachable by.
+    ///
+    /// Used for generating a `well-known/did.json` document, `did:web` identity and a AppView service endpoint.
+    #[arg(long = "host", env = "GIFDEX_APPVIEW_HOST")]
+    host: Url,
 }
 
 #[derive(Clone)]
 struct AppState {
     database: Arc<Database>,
     cdn_url: Url,
+    service_did_document: DidDocument<'static>,
+    service_auth_config: ServiceAuthConfig<JacquardResolver>,
+}
+
+impl ServiceAuth for AppState {
+    type Resolver = JacquardResolver;
+
+    fn service_did(&self) -> &Did<'_> {
+        self.service_auth_config.service_did()
+    }
+
+    fn resolver(&self) -> &Self::Resolver {
+        self.service_auth_config.resolver()
+    }
+
+    fn require_lxm(&self) -> bool {
+        ServiceAuth::require_lxm(&self.service_auth_config)
+    }
 }
 
 #[tokio::main]
@@ -60,25 +124,62 @@ async fn main() -> Result<()> {
         .with_env_filter(EnvFilter::try_from_default_env().unwrap_or(EnvFilter::new("info")))
         .init();
     let args = Arguments::parse();
-    let app_state = AppState {
-        database: Arc::new(Database::new(&args.database_url).await?),
-        cdn_url: args.cdn_url,
-    };
+
+    // Create ATProto service information.
+    let service_host = args
+        .host
+        .host_str()
+        .context("unable to get host from host url")?;
+    let service_did = Did::new_owned(format!("did:web:{}", service_host))
+        .context("failed to create did:web from host")?;
+    let service_did_doc = build_service_did_doc(&service_did, service_host);
+    let service_auth_config = ServiceAuthConfig::new(
+        service_did,
+        JacquardResolver::new(reqwest::Client::new(), ResolverOptions::default()),
+    );
+
+    // Initialise application state and required services.
+    let database = Arc::new(
+        Database::new(&args.database_url)
+            .await
+            .context("failed to connect to database")?,
+    );
+
+    // Start server.
     let router = Router::new()
-        .route("/", get(async || "Gifdex AppView"))
+        .route("/", get(handle_index))
+        .route("/xrpc/_health", get(handle_health))
+        .route("/.well-known/did.json", get(handle_well_known_did))
+        // AtProto Sync
+        .merge(GetRepoStatusRequest::into_router(handle_get_repo_status))
+        // Gifdex Actor
         .merge(GetProfileRequest::into_router(handle_get_profile))
         .merge(GetProfilesRequest::into_router(handle_get_profiles))
-        .merge(GetRepoStatusRequest::into_router(handle_get_repo_status))
-        .merge(GetPostsRequest::into_router(handle_get_actor_posts))
+        // Gifdex Feed
+        .merge(GetPostRequest::into_router(handle_get_post))
+        .merge(GetPostsByQueryRequest::into_router(
+            handle_get_posts_by_query,
+        ))
+        .merge(GetPostsByActorRequest::into_router(
+            handle_get_posts_by_actor,
+        ))
+        // Gifdex Moderation
+        .merge(CreateReportRequest::into_router(handle_create_report))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
                 .on_request(DefaultOnRequest::default().level(Level::INFO))
                 .on_response(DefaultOnResponse::default().level(Level::INFO))
-                .on_failure(DefaultOnFailure::default().level(Level::INFO)),
+                .on_failure(DefaultOnFailure::default().level(Level::ERROR)),
         )
         .layer(NormalizePathLayer::trim_trailing_slash())
-        .layer(CatchPanicLayer::new())
+        .layer(CatchPanicLayer::new()) // TODO: Use custom panic handler to return Xrpc InternalServerError.
+        .layer(
+            CorsLayer::new()
+                .allow_origin("*".parse::<HeaderValue>().unwrap())
+                .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+                .allow_headers(Any),
+        )
         .layer(axum_middleware::from_fn(
             async |req: Request, next: Next| {
                 let mut res = next.run(req).await;
@@ -88,14 +189,15 @@ async fn main() -> Result<()> {
                     HeaderValue::from_static(env!("CARGO_PKG_NAME")),
                 );
                 res_headers.insert("X-Robots-Tag", HeaderValue::from_static("none"));
-                res_headers.insert(
-                    header::ACCESS_CONTROL_ALLOW_ORIGIN,
-                    HeaderValue::from_static("*"),
-                );
                 res
             },
         ))
-        .with_state(app_state);
+        .with_state(AppState {
+            database,
+            cdn_url: args.cdn,
+            service_did_document: service_did_doc,
+            service_auth_config,
+        });
 
     let tcp_listener = TcpListener::bind(args.address).await?;
     info!(
@@ -109,7 +211,6 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-// https://github.com/tokio-rs/axum/blob/15917c6dbcb4a48707a20e9cfd021992a279a662/examples/graceful-shutdown/src/main.rs#L55
 async fn shutdown_signal() {
     let ctrl_c = async {
         signal::ctrl_c()
@@ -132,4 +233,21 @@ async fn shutdown_signal() {
         _ = ctrl_c => {},
         _ = terminate => {},
     }
+}
+
+fn build_service_did_doc(did: &Did<'_>, hostname: &str) -> DidDocument<'static> {
+    DidDocument::new()
+        .context(vec!["https://www.w3.org/ns/did/v1".into()])
+        .id(did.clone())
+        .service(vec![
+            Service::new()
+                .id("#gifdex_appview".into())
+                .r#type("GifdexAppView".into())
+                .service_endpoint(Data::String(AtprotoStr::new(hostname)))
+                .extra_data(BTreeMap::default())
+                .build(),
+        ])
+        .extra_data(BTreeMap::default())
+        .build()
+        .into_static()
 }

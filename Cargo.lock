@@ -1421,9 +1421,12 @@ dependencies = [
  "clap",
  "dotenvy",
  "gifdex-lexicons",
+ "httpdate",
  "jacquard-api",
  "jacquard-axum",
  "jacquard-common",
+ "jacquard-identity",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "sqlx",
@@ -1442,9 +1445,9 @@ dependencies = [
  "cid",
  "clap",
  "dotenvy",
- "floodgate",
  "futures",
  "infer",
+ "jacquard-common",
  "multihash",
  "multihash-codetable",
  "reqwest 0.13.1",
@@ -1465,7 +1468,10 @@ dependencies = [
  "dotenvy",
  "floodgate",
  "gifdex-lexicons",
+ "imagesize",
+ "infer",
  "jacquard-common",
+ "reqwest 0.13.1",
  "rustls",
  "serde",
  "serde_json",
@@ -1949,6 +1955,12 @@ dependencies = [
  "icu_normalizer",
  "icu_properties",
 ]
+
+[[package]]
+name = "imagesize"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09e54e57b4c48b40f7aec75635392b12b3421fa26fe8b4332e63138ed278459c"
 
 [[package]]
 name = "indexmap"

@@ -13,15 +13,14 @@ use sqlx::query;
 
 pub async fn handle_get_profiles(
     State(state): State<AppState>,
-    ExtractXrpc(req): ExtractXrpc<GetProfilesRequest>,
+    ExtractXrpc(request): ExtractXrpc<GetProfilesRequest>,
 ) -> Result<Json<GetProfilesOutput<'static>>, XrpcErrorResponse<GenericXrpcError>> {
-    let dids: Vec<String> = req.actors.iter().map(|d| d.to_string()).collect();
+    let actors: Vec<String> = request.actors.iter().map(|d| d.to_string()).collect();
     let account = query!(
-        "SELECT did, display_name, handle, avatar_blob_cid, indexed_at,
-                (SELECT COUNT(*) FROM posts WHERE did = accounts.did) as \"post_count!\"
-         FROM accounts 
-         WHERE did = ANY($1)",
-        &dids
+        "SELECT did, handle, display_name, avatar_blob_cid, pronouns, indexed_at,
+         (SELECT COUNT(*) FROM posts WHERE did = accounts.did) as \"post_count!\"
+         FROM accounts WHERE did = ANY($1) OR handle = ANY($1)",
+        &actors
     )
     .fetch_all(state.database.executor())
     .await
@@ -32,13 +31,14 @@ pub async fn handle_get_profiles(
             .into_iter()
             .map(|account| {
                 ProfileView::new()
-                    .did(Did::new_owned(&account.did).unwrap()) // Assuming Did can be created from String
+                    .did(account.did.parse::<Did>().unwrap())
                     .handle(
                         account
                             .handle
-                            .map(|handle| Handle::new_owned(handle).unwrap()),
+                            .map(|handle| handle.parse::<Handle>().unwrap()),
                     )
                     .display_name(account.display_name.map(|s| s.into()))
+                    .pronouns(account.pronouns.map(|pronouns| pronouns.into()))
                     .avatar(account.avatar_blob_cid.map(|blob_cid| {
                         Uri::new_owned(
                             state

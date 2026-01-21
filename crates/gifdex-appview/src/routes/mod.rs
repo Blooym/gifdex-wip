@@ -1,2 +1,5 @@
-pub mod com_atproto;
-pub mod net_gifdex;
+mod index;
+pub mod well_known;
+pub mod xrpc;
+
+pub use index::*;

@@ -2,6 +2,7 @@
 CREATE TABLE accounts(
   did TEXT PRIMARY KEY,
   handle TEXT,
+  pds TEXT,
   rev TEXT,
   is_active BOOLEAN NOT NULL DEFAULT true,
   status TEXT NOT NULL DEFAULT 'active',

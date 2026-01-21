@@ -1,3 +1,4 @@
+use crate::AppState;
 use anyhow::Result;
 use floodgate::api::RecordEventData;
 use gifdex_lexicons::net_gifdex;
@@ -9,6 +10,7 @@ pub async fn handle_favourite_create_event(
     record_data: &RecordEventData<'_>,
     data: &net_gifdex::feed::favourite::Favourite<'_>,
     tx: &mut PgTransaction<'_>,
+    _state: &AppState,
 ) -> Result<()> {
     // Ensure the record rkey is a valid TID .
     if Tid::new(&record_data.rkey).is_err() {
@@ -58,7 +60,7 @@ pub async fn handle_favourite_create_event(
         "INSERT INTO post_favourites (did, rkey, post_did, \
          post_rkey, created_at, indexed_at) \
          VALUES ($1, $2, $3, $4, $5, extract(epoch from now())::BIGINT) \
-         ON CONFLICT (did, rkey) DO NOTHING",
+         ON CONFLICT (did, post_did, post_rkey) DO NOTHING",
         record_data.did.as_str(),
         record_data.rkey.as_str(),
         post_did.as_str(),
@@ -82,6 +84,7 @@ pub async fn handle_favourite_create_event(
 pub async fn handle_favourite_delete_event(
     record_data: &RecordEventData<'_>,
     tx: &mut PgTransaction<'_>,
+    _state: &AppState,
 ) -> Result<()> {
     match query!(
         "DELETE FROM post_favourites WHERE did = $1 AND rkey = $2",

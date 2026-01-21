@@ -27,6 +27,13 @@
         "title": {
           "type": "string"
         },
+        "media": {
+          "type": "ref",
+          "ref": "#postViewMedia"
+        },
+        "favouriteCount": {
+          "type": "integer"
+        },
         "tags": {
           "type": "array",
           "items": {
@@ -39,31 +46,6 @@
             "type": "string"
           }
         },
-        "media": {
-          "type": "object",
-          "required": ["url", "mimeType", "width", "height"],
-          "properties": {
-            "url": {
-              "type": "string",
-              "format": "uri"
-            },
-            "alt": {
-              "type": "string"
-            },
-            "mimeType": {
-              "type": "string"
-            },
-            "width": {
-              "type": "integer"
-            },
-            "height": {
-              "type": "integer"
-            }
-          }
-        },
-        "favouriteCount": {
-          "type": "integer"
-        },
         "viewer": {
           "type": "ref",
           "ref": "#viewerState"
@@ -73,10 +55,12 @@
           "format": "datetime"
         },
         "editedAt": {
-          "type": "integer"
+          "type": "string",
+          "format": "datetime"
         },
         "indexedAt": {
-          "type": "integer"
+          "type": "string",
+          "format": "datetime"
         }
       }
     },
@@ -88,8 +72,8 @@
         "author",
         "title",
         "media",
-        "viewer",
         "favouriteCount",
+        "viewer",
         "createdAt",
         "indexedAt"
       ],
@@ -105,6 +89,13 @@
         "title": {
           "type": "string"
         },
+        "media": {
+          "type": "ref",
+          "ref": "#postViewMedia"
+        },
+        "favouriteCount": {
+          "type": "integer"
+        },
         "tags": {
           "type": "array",
           "items": {
@@ -116,32 +107,6 @@
           "items": {
             "type": "string"
           }
-        },
-        "media": {
-          "type": "object",
-          "description": "GIF content and metadata.",
-          "required": ["url", "mimeType", "width", "height"],
-          "properties": {
-            "url": {
-              "type": "string",
-              "format": "uri"
-            },
-            "alt": {
-              "type": "string"
-            },
-            "mimeType": {
-              "type": "string"
-            },
-            "width": {
-              "type": "integer"
-            },
-            "height": {
-              "type": "integer"
-            }
-          }
-        },
-        "favouriteCount": {
-          "type": "integer"
         },
         "viewer": {
           "type": "ref",
@@ -161,12 +126,50 @@
         }
       }
     },
+    "postViewMedia": {
+      "type": "object",
+      "description": "A post's media content with alongside its dimensions data",
+      "required": ["fullsizeUrl", "thumbnailUrl", "mimeType", "dimensions"],
+      "properties": {
+        "thumbnailUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "fullsizeUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "alt": {
+          "type": "string"
+        },
+        "mimeType": {
+          "type": "string"
+        },
+        "dimensions": {
+          "type": "ref",
+          "ref": "#postViewMediaDimensions"
+        }
+      }
+    },
+    "postViewMediaDimensions": {
+      "type": "object",
+      "description": "Width and height of a post's media.",
+      "required": ["width", "height"],
+      "properties": {
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        }
+      }
+    },
     "viewerState": {
       "type": "object",
       "description": "Metadata about the requesting account's relationship with the subject content. Only has meaningful content for authed requests.",
-      "required": ["liked"],
+      "required": ["favourited"],
       "properties": {
-        "liked": {
+        "favourited": {
           "type": "boolean",
           "default": false
         }

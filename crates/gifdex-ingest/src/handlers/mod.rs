@@ -1,22 +1,21 @@
-mod actor;
-mod feed;
 mod identity;
-mod labeler;
+mod net_gifdex;
 
 use crate::AppState;
-use crate::handlers::labeler::{handle_rule_create_event, handle_rule_delete_event};
-use crate::handlers::{
-    actor::{handle_profile_create_event, handle_profile_delete_event},
-    feed::{
-        handle_favourite_create_event, handle_favourite_delete_event, handle_post_create,
-        handle_post_delete,
-    },
-    identity::handle_identity,
-    labeler::{handle_label_create_event, handle_label_delete_event},
-};
+use crate::handlers;
+use crate::handlers::net_gifdex::actor::handle_profile_create_event;
+use crate::handlers::net_gifdex::actor::handle_profile_delete_event;
+use crate::handlers::net_gifdex::feed::handle_favourite_create_event;
+use crate::handlers::net_gifdex::feed::handle_favourite_delete_event;
+use crate::handlers::net_gifdex::feed::handle_post_create;
+use crate::handlers::net_gifdex::feed::handle_post_delete;
+use crate::handlers::net_gifdex::labeler::handle_label_create_event;
+use crate::handlers::net_gifdex::labeler::handle_label_delete_event;
+use crate::handlers::net_gifdex::labeler::handle_rule_create_event;
+use crate::handlers::net_gifdex::labeler::handle_rule_delete_event;
 use anyhow::bail;
 use floodgate::api::{EventData, RecordAction};
-use gifdex_lexicons::net_gifdex;
+use gifdex_lexicons::net_gifdex as gifdex_lexicons;
 use jacquard_common::types::collection::Collection;
 use sqlx::query;
 use std::sync::Arc;
@@ -76,7 +75,7 @@ pub async fn handle_event(state: Arc<AppState>, data: EventData<'static>) -> any
     match data {
         EventData::Identity { identity } => {
             let mut tx = state.database.transaction().await?;
-            handle_identity(&identity, &mut tx).await?;
+            handlers::identity::handle_identity(&identity, &mut tx, &state).await?;
             tx.commit().await?;
             Ok(())
         }
@@ -89,34 +88,35 @@ pub async fn handle_event(state: Arc<AppState>, data: EventData<'static>) -> any
                 | RecordAction::Update {
                     record: payload, ..
                 } => match record.collection.as_str() {
-                    net_gifdex::feed::post::Post::NSID => {
+                    gifdex_lexicons::feed::post::Post::NSID => {
                         let json_str = serde_json::to_string(&payload.raw())?;
-                        let post: net_gifdex::feed::post::Post = serde_json::from_str(&json_str)?;
-                        handle_post_create(&record, &post, &mut tx).await?
-                    }
-                    net_gifdex::feed::favourite::Favourite::NSID => {
-                        let json_str = serde_json::to_string(&payload.raw())?;
-                        let favourite: net_gifdex::feed::favourite::Favourite =
+                        let post: gifdex_lexicons::feed::post::Post =
                             serde_json::from_str(&json_str)?;
-                        handle_favourite_create_event(&record, &favourite, &mut tx).await?
+                        handle_post_create(&record, &post, &mut tx, &state).await?
                     }
-                    net_gifdex::actor::profile::Profile::NSID => {
+                    gifdex_lexicons::feed::favourite::Favourite::NSID => {
                         let json_str = serde_json::to_string(&payload.raw())?;
-                        let profile: net_gifdex::actor::profile::Profile =
+                        let favourite: gifdex_lexicons::feed::favourite::Favourite =
                             serde_json::from_str(&json_str)?;
-                        handle_profile_create_event(&record, &profile, &mut tx).await?
+                        handle_favourite_create_event(&record, &favourite, &mut tx, &state).await?
                     }
-                    net_gifdex::labeler::label::Label::NSID => {
+                    gifdex_lexicons::actor::profile::Profile::NSID => {
                         let json_str = serde_json::to_string(&payload.raw())?;
-                        let label: net_gifdex::labeler::label::Label =
+                        let profile: gifdex_lexicons::actor::profile::Profile =
                             serde_json::from_str(&json_str)?;
-                        handle_label_create_event(&record, &label, &mut tx).await?
+                        handle_profile_create_event(&record, &profile, &mut tx, &state).await?
                     }
-                    net_gifdex::labeler::rule::Rule::NSID => {
+                    gifdex_lexicons::labeler::label::Label::NSID => {
                         let json_str = serde_json::to_string(&payload.raw())?;
-                        let rule: net_gifdex::labeler::rule::Rule =
+                        let label: gifdex_lexicons::labeler::label::Label =
                             serde_json::from_str(&json_str)?;
-                        handle_rule_create_event(&record, &rule, &mut tx).await?
+                        handle_label_create_event(&record, &label, &mut tx, &state).await?
+                    }
+                    gifdex_lexicons::labeler::rule::Rule::NSID => {
+                        let json_str = serde_json::to_string(&payload.raw())?;
+                        let rule: gifdex_lexicons::labeler::rule::Rule =
+                            serde_json::from_str(&json_str)?;
+                        handle_rule_create_event(&record, &rule, &mut tx, &state).await?
                     }
                     collection @ _ => {
                         tracing::error!(
@@ -127,20 +127,20 @@ pub async fn handle_event(state: Arc<AppState>, data: EventData<'static>) -> any
                 },
 
                 RecordAction::Delete => match record.collection.as_str() {
-                    net_gifdex::feed::post::Post::NSID => {
-                        handle_post_delete(&record, &mut tx).await?
+                    gifdex_lexicons::feed::post::Post::NSID => {
+                        handle_post_delete(&record, &mut tx, &state).await?
                     }
-                    net_gifdex::feed::favourite::Favourite::NSID => {
-                        handle_favourite_delete_event(&record, &mut tx).await?
+                    gifdex_lexicons::feed::favourite::Favourite::NSID => {
+                        handle_favourite_delete_event(&record, &mut tx, &state).await?
                     }
-                    net_gifdex::actor::profile::Profile::NSID => {
-                        handle_profile_delete_event(&record, &mut tx).await?
+                    gifdex_lexicons::actor::profile::Profile::NSID => {
+                        handle_profile_delete_event(&record, &mut tx, &state).await?
                     }
-                    net_gifdex::labeler::label::Label::NSID => {
-                        handle_label_delete_event(&record, &mut tx).await?
+                    gifdex_lexicons::labeler::label::Label::NSID => {
+                        handle_label_delete_event(&record, &mut tx, &state).await?
                     }
-                    net_gifdex::labeler::rule::Rule::NSID => {
-                        handle_rule_delete_event(&record, &mut tx).await?
+                    gifdex_lexicons::labeler::rule::Rule::NSID => {
+                        handle_rule_delete_event(&record, &mut tx, &state).await?
                     }
                     collection @ _ => {
                         tracing::error!(

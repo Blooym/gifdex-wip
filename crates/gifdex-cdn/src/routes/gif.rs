@@ -2,12 +2,13 @@ use crate::{AppState, MAX_BLOB_SIZE, routes::stream_with_limit};
 use axum::{
     body::Body,
     extract::{Path, State},
-    http::{Response, StatusCode},
+    http::{Response, StatusCode, header},
     response::IntoResponse,
 };
 use cid::Cid;
-use floodgate::extern_types::{did::Did, tid::Tid};
+use jacquard_common::types::{did::Did, tid::Tid};
 use multihash_codetable::{Code, MultihashDigest};
+use reqwest::Url;
 use sqlx::query;
 use std::sync::Arc;
 use tracing::warn;
@@ -63,44 +64,43 @@ pub async fn get_gif_handler(
     };
 
     // Ensure the post exists in our records.
-    match query!(
-        "SELECT EXISTS(SELECT 1 FROM posts WHERE did = $1 AND rkey = $2)",
+    let post = match query!(
+        "SELECT title FROM posts WHERE did = $1 AND rkey = $2",
         did.as_str(),
         rkey
     )
     .fetch_optional(state.database.executor())
     .await
     {
-        Ok(result) if result.is_none() => {
+        Ok(Some(record)) => record,
+        Ok(None) => {
             return (StatusCode::NOT_FOUND, "Post not found in records").into_response();
         }
-        Ok(_) => {}
         Err(err) => {
             warn!("database error: {err:?}");
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
     };
 
-    // Get the user's PDS URL from their DID document
-    let pds_url = match state.tap_client.resolve_did(&did).await {
-        Ok(doc) => match doc.pds_endpoint() {
-            Some(url) => url,
-            None => {
-                warn!("No PDS endpoint found for {did}");
-                return (
-                    StatusCode::NOT_FOUND,
-                    "No AtprotoPersonalDataServer service endpoint found in resolved DID document",
-                )
-                    .into_response();
-            }
-        },
-        Err(err) => {
-            warn!("failed to resolve DID {did}: {err:?}");
+    // Get the user's PDS URL from our accounts data.
+    let pds_url = match query!("SELECT pds FROM accounts WHERE did = $1", did.as_str())
+        .fetch_optional(state.database.executor())
+        .await
+    {
+        Ok(Some(record)) if record.pds.is_some() => {
+            Url::parse(&format!("https://{}", record.pds.unwrap())).unwrap()
+        }
+        Ok(Some(_)) | Ok(None) => {
+            warn!("No PDS endpoint found for {did}");
             return (
-                StatusCode::BAD_GATEWAY,
-                "DID resolution failed - identity resolver may be temporarily unavailable.",
+                StatusCode::NOT_FOUND,
+                "No AtprotoPersonalDataServer service endpoint found in resolved DID document",
             )
                 .into_response();
+        }
+        Err(err) => {
+            warn!("failed to resolve DID {did}: {err:?}");
+            return (StatusCode::BAD_GATEWAY, "Failed to resolve DID").into_response();
         }
     };
 
@@ -167,10 +167,17 @@ pub async fn get_gif_handler(
 
     Response::builder()
         .status(StatusCode::OK)
-        .header("Content-Type", mime_type)
-        .header("Content-Security-Policy", "default-src 'none'; sandbox")
-        .header("X-Content-Type-Options", "nosniff")
-        .header("Cache-Control", "public, max-age=604800")
+        .header(header::CONTENT_TYPE, mime_type)
+        .header(
+            header::CONTENT_SECURITY_POLICY,
+            "default-src 'none'; sandbox",
+        )
+        .header(header::X_CONTENT_TYPE_OPTIONS, "nosniff")
+        .header(header::CACHE_CONTROL, "public, max-age=604800")
+        .header(
+            header::CONTENT_DISPOSITION,
+            format!("attachment; filename=\"{}\"", post.title),
+        )
         .header(
             "Upstream-PDS",
             format!(" {}", pds_url.host_str().unwrap_or("unknown")),

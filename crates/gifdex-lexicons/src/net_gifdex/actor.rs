@@ -5,7 +5,6 @@
 // This file was automatically generated from Lexicon schemas.
 // Any manual changes will be overwritten on the next regeneration.
 
-pub mod get_posts;
 pub mod get_profile;
 pub mod get_profiles;
 pub mod profile;

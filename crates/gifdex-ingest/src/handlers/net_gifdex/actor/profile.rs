@@ -4,10 +4,13 @@ use gifdex_lexicons::net_gifdex;
 use sqlx::{PgTransaction, query};
 use tracing::{error, info, warn};
 
+use crate::AppState;
+
 pub async fn handle_profile_create_event(
     record_data: &RecordEventData<'_>,
     data: &net_gifdex::actor::profile::Profile<'_>,
     tx: &mut PgTransaction<'_>,
+    _state: &AppState,
 ) -> Result<()> {
     // Ensure the record rkey is a valid exactly 'self'.
     if record_data.rkey.as_str() != "self" {
@@ -66,6 +69,7 @@ pub async fn handle_profile_create_event(
 pub async fn handle_profile_delete_event(
     record_data: &RecordEventData<'_>,
     tx: &mut PgTransaction<'_>,
+    _state: &AppState,
 ) -> Result<()> {
     if record_data.rkey.as_str() != "self" {
         warn!(

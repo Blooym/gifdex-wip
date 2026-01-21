@@ -13,7 +13,6 @@ use axum::{
 use clap::Parser;
 use database::Database;
 use dotenvy::dotenv;
-use floodgate::{client::TapClient, extern_types::Url};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{net::TcpListener, signal};
 use tower_http::{
@@ -40,17 +39,10 @@ struct Arguments {
 
     #[arg(long = "database-url", env = "DATABASE_URL")]
     database_url: String,
-
-    #[arg(long = "tap-url", env = "GIFDEX_CDN_TAP_URL")]
-    tap_url: Url,
-
-    #[arg(long = "tap-password", env = "GIFDEX_CDN_TAP_PASSWORD")]
-    tap_password: Option<String>,
 }
 
 struct AppState {
     database: Database,
-    tap_client: TapClient,
     http_client: reqwest::Client,
 }
 
@@ -63,9 +55,6 @@ async fn main() -> Result<()> {
     let args = Arguments::parse();
     let app_state = Arc::new(AppState {
         database: Database::new(&args.database_url).await?,
-        tap_client: TapClient::builder(args.tap_url)
-            .password(args.tap_password)
-            .build()?,
         http_client: reqwest::Client::builder()
             .https_only(true)
             .user_agent(concat!(
