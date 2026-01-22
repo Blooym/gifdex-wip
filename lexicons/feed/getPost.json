@@ -32,10 +32,6 @@
       },
       "errors": [
         {
-          "name": "ActorNotFound",
-          "description": "The requested actor does not exist or has not been indexed yet."
-        },
-        {
           "name": "PostNotFound",
           "description": "The requested post does not exist or has not been indexed yet."
         }

@@ -4,7 +4,7 @@ use gifdex_lexicons::net_gifdex::actor::{
     ProfileView,
     get_profiles::{GetProfilesOutput, GetProfilesRequest},
 };
-use jacquard_axum::{ExtractXrpc, XrpcErrorResponse};
+use jacquard_axum::{ExtractXrpc, XrpcErrorResponse, service_auth::ExtractOptionalServiceAuth};
 use jacquard_common::{
     types::{did::Did, string::Handle, uri::Uri},
     xrpc::GenericXrpcError,
@@ -13,6 +13,7 @@ use sqlx::query;
 
 pub async fn handle_get_profiles(
     State(state): State<AppState>,
+    ExtractOptionalServiceAuth(_auth): ExtractOptionalServiceAuth,
     ExtractXrpc(request): ExtractXrpc<GetProfilesRequest>,
 ) -> Result<Json<GetProfilesOutput<'static>>, XrpcErrorResponse<GenericXrpcError>> {
     let actors: Vec<String> = request.actors.iter().map(|d| d.to_string()).collect();

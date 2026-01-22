@@ -10,7 +10,6 @@ use crate::routes::{
         net_gifdex::{
             actor::{handle_get_profile, handle_get_profiles},
             feed::{handle_get_post, handle_get_posts_by_actor, handle_get_posts_by_query},
-            moderation::handle_create_report,
         },
     },
 };
@@ -31,7 +30,6 @@ use gifdex_lexicons::net_gifdex::{
         get_post::GetPostRequest, get_posts_by_actor::GetPostsByActorRequest,
         get_posts_by_query::GetPostsByQueryRequest,
     },
-    moderation::create_report::CreateReportRequest,
 };
 use jacquard_api::com_atproto::sync::get_repo_status::GetRepoStatusRequest;
 use jacquard_axum::{
@@ -42,7 +40,7 @@ use jacquard_common::{
     Data, IntoStatic,
     types::{
         did::Did,
-        did_doc::{DidDocument, Service},
+        did_doc::{self, DidDocument, Service},
         string::AtprotoStr,
     },
     url::Url,
@@ -126,13 +124,14 @@ async fn main() -> Result<()> {
     let args = Arguments::parse();
 
     // Create ATProto service information.
-    let service_host = args
-        .host
-        .host_str()
-        .context("unable to get host from host url")?;
-    let service_did = Did::new_owned(format!("did:web:{}", service_host))
-        .context("failed to create did:web from host")?;
-    let service_did_doc = build_service_did_doc(&service_did, service_host);
+    let service_did = Did::new_owned(format!(
+        "did:web:{}",
+        args.host
+            .host_str()
+            .context("unable to get host from host url")?
+    ))
+    .context("failed to create did:web from host")?;
+    let service_did_doc = build_service_did_doc(&service_did, &args.host);
     let service_auth_config = ServiceAuthConfig::new(
         service_did,
         JacquardResolver::new(reqwest::Client::new(), ResolverOptions::default()),
@@ -164,7 +163,6 @@ async fn main() -> Result<()> {
             handle_get_posts_by_actor,
         ))
         // Gifdex Moderation
-        .merge(CreateReportRequest::into_router(handle_create_report))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
@@ -235,15 +233,17 @@ async fn shutdown_signal() {
     }
 }
 
-fn build_service_did_doc(did: &Did<'_>, hostname: &str) -> DidDocument<'static> {
+fn build_service_did_doc(did: &Did<'_>, url: &Url) -> DidDocument<'static> {
     DidDocument::new()
-        .context(vec!["https://www.w3.org/ns/did/v1".into()])
+        .context(did_doc::default_context())
         .id(did.clone())
         .service(vec![
             Service::new()
                 .id("#gifdex_appview".into())
                 .r#type("GifdexAppView".into())
-                .service_endpoint(Data::String(AtprotoStr::new(hostname)))
+                .service_endpoint(Data::String(AtprotoStr::String(
+                    url.as_str().trim_end_matches("/").into(),
+                )))
                 .extra_data(BTreeMap::default())
                 .build(),
         ])
