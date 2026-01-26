@@ -5,20 +5,7 @@
 	import { Download, Share2, Star } from 'lucide-svelte';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
-
-	const post = $derived(data.post);
-	const { did, rkey } = $derived(parseAtUri(post.uri));
-	const formattedFavouriteCount = $derived(
-		new Intl.NumberFormat('en', { notation: 'compact' }).format(post.favouriteCount)
-	);
-	const formattedPostCreatedAt = $derived(
-		new Date(post.createdAt).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		})
-	);
+	const { data }: PageProps = $props();
 
 	function parseAtUri(uri: string) {
 		const match = uri.match(/^at:\/\/([^/]+)\/([^/]+)\/(.+)$/);
@@ -29,21 +16,21 @@
 	async function toggleFavourite() {
 		if (!authStore.isAuthenticated()) return;
 
-		if (!post.viewer.favourite) {
+		if (!data.post.viewer.favourite) {
 			const response = await authStore.client.call(ComAtprotoRepoCreateRecord, {
 				input: {
 					collection: 'net.gifdex.feed.favourite',
 					record: {
 						$type: 'net.gifdex.feed.favourite',
-						subject: post.uri,
+						subject: data.post.uri,
 						createdAt: new Date().toISOString()
 					},
 					repo: authStore.activeUser.did
 				}
 			});
 			if (response.ok) {
-				post.viewer.favourite = parseAtUri(response.data.uri).rkey;
-				post.favouriteCount += 1;
+				data.post.viewer.favourite = parseAtUri(response.data.uri).rkey;
+				data.post.favouriteCount += 1;
 			}
 		} else {
 			// TODO: implement unfavourite
@@ -53,7 +40,7 @@
 	async function sharePost() {
 		if (navigator.share) {
 			await navigator.share({
-				title: post.title,
+				title: data.post.title,
 				url: window.location.href
 			});
 		} else {
@@ -63,8 +50,8 @@
 
 	async function downloadMedia() {
 		const a = document.createElement('a');
-		a.href = post.media.fullsizeUrl;
-		a.download = `${post.title}.gif`;
+		a.href = data.post.media.fullsizeUrl;
+		a.download = `${data.post.title}.gif`;
 		a.click();
 	}
 </script>
@@ -72,24 +59,34 @@
 <div class="post-view">
 	<div class="post-container">
 		<div class="media-section">
-			<img src={post.media.fullsizeUrl} alt={post.media.alt || post.title} class="post-image" />
+			<img
+				src={data.post.media.fullsizeUrl}
+				alt={data.post.media.alt || data.post.title}
+				class="post-image"
+			/>
 		</div>
 
 		<div class="info-section">
 			<div class="post-header">
-				<h1 class="post-title">{post.title}</h1>
+				<h1 class="post-title">{data.post.title}</h1>
 				<div class="post-meta">
 					<span class="meta-item">
 						<Star size={16} />
-						{formattedFavouriteCount} favourites
+						{new Intl.NumberFormat('en', { notation: 'compact' }).format(data.post.favouriteCount)} favourites
 					</span>
-					<span class="meta-item date">{formattedPostCreatedAt}</span>
+					<span class="meta-item date"
+						>{new Date(data.post.createdAt).toLocaleDateString('en-US', {
+							year: 'numeric',
+							month: 'long',
+							day: 'numeric'
+						})}</span
+					>
 				</div>
 			</div>
 
-			{#if post.tags && post.tags.length > 0}
+			{#if data.post.tags && data.post.tags.length > 0}
 				<div class="tags">
-					{#each post.tags as tag}
+					{#each data.post.tags as tag}
 						<span class="tag">#{tag}</span>
 					{/each}
 				</div>
@@ -97,13 +94,13 @@
 
 			<div class="actions">
 				<Button
-					variant={post.viewer.favourite ? 'primary' : 'neutral'}
+					variant={data.post.viewer.favourite ? 'primary' : 'neutral'}
 					onclick={toggleFavourite}
 					disabled={!authStore.isAuthenticated()}
 					class="action-button"
 				>
-					<Star size={18} fill={post.viewer.favourite ? 'currentColor' : 'none'} />
-					{post.viewer.favourite ? 'Favourited' : 'Favourite'}
+					<Star size={18} fill={data.post.viewer.favourite ? 'currentColor' : 'none'} />
+					{data.post.viewer.favourite ? 'Favourited' : 'Favourite'}
 				</Button>
 
 				<Button variant="neutral" onclick={sharePost} class="action-button">
@@ -119,13 +116,17 @@
 
 			<div class="divider"></div>
 
-			<a href="/profile/{post.author.did}" class="author-link">
-				{#if post.author.avatar}
-					<img src={post.author.avatar} alt={post.author.displayName} class="author-avatar" />
+			<a href="/profile/{data.post.author.did}" class="author-link">
+				{#if data.post.author.avatar}
+					<img
+						src={data.post.author.avatar}
+						alt={data.post.author.displayName}
+						class="author-avatar"
+					/>
 				{/if}
 				<div class="author-info">
-					<div class="author-name">{post.author.displayName}</div>
-					<div class="author-handle">@{post.author.handle}</div>
+					<div class="author-name">{data.post.author.displayName}</div>
+					<div class="author-handle">@{data.post.author.handle}</div>
 				</div>
 			</a>
 		</div>

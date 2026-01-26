@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO accounts (did, display_name, pronouns, avatar_blob_cid, created_at) VALUES ($1, $2, $3, $4, $5) ON CONFLICT(did) DO UPDATE SET display_name = excluded.display_name, pronouns = excluded.pronouns, avatar_blob_cid = excluded.avatar_blob_cid, created_at = excluded.created_at",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e1fee486981bde5530e8eb2b8a797d7243f643a3a8c2836ad3a9af375f651129"
+}

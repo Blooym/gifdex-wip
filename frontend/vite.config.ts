@@ -1,11 +1,14 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
-import metadata from './static/client-metadata.json';
+import metadata from './static/oauth/client-metadata.json';
 
 const SERVER_HOST = '127.0.0.1';
 const SERVER_PORT = 3000;
 
 export default defineConfig({
+	build: {
+		sourcemap: true
+	},
 	plugins: [
 		sveltekit(),
 		{
@@ -29,8 +32,9 @@ export default defineConfig({
 					process.env.PUBLIC_OAUTH_CLIENT_ID = clientId;
 					process.env.PUBLIC_OAUTH_REDIRECT_URI = redirectUri;
 				}
-				process.env.PUBLIC_CLIENT_URI = metadata.client_uri;
+
 				process.env.PUBLIC_OAUTH_SCOPE = metadata.scope;
+				process.env.PUBLIC_CLIENT_URI = metadata.client_uri;
 			}
 		}
 	],

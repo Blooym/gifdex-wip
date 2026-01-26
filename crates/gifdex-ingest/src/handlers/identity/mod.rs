@@ -1,6 +1,6 @@
 use crate::AppState;
 use anyhow::Result;
-use floodgate::api::IdentityEventData;
+use doubletap::types::{IdentityEventData, IdentityEventStatus};
 use sqlx::{PgTransaction, query};
 use tracing::{error, info};
 
@@ -11,7 +11,10 @@ pub async fn handle_identity(
 ) -> Result<()> {
     // Completely purge data related to accounts that are deleted or takendown.
     // Note: this does not delete any labels applied to the account or their content.
-    if matches!(identity.status.as_str(), "deleted" | "takendown") {
+    if matches!(
+        identity.status,
+        IdentityEventStatus::Deleted | IdentityEventStatus::Takendown
+    ) {
         if let Err(err) = query!("DELETE FROM accounts WHERE did = $1", identity.did.as_str())
             .execute(&mut **tx)
             .await
@@ -43,7 +46,7 @@ pub async fn handle_identity(
         identity.handle.as_str(),
         pds,
         identity.is_active,
-        identity.status
+        identity.status.as_str()
     )
     .execute(&mut **tx)
     .await

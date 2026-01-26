@@ -5,14 +5,89 @@
 // This file was automatically generated from Lexicon schemas.
 // Any manual changes will be overwritten on the next regeneration.
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GetPostsByQuerySortBy {
+    Newest,
+    Oldest,
+    Top,
+    Relevance,
+}
+
+impl GetPostsByQuerySortBy {
+    /// Returns the string representation of this enum variant.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Newest => "newest",
+            Self::Oldest => "oldest",
+            Self::Top => "top",
+            Self::Relevance => "relevance",
+        }
+    }
+}
+
+impl core::str::FromStr for GetPostsByQuerySortBy {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "newest" => Ok(Self::Newest),
+            "oldest" => Ok(Self::Oldest),
+            "top" => Ok(Self::Top),
+            "relevance" => Ok(Self::Relevance),
+            _ => Err(format!(
+                "invalid value '{}', expected one of: {}",
+                s, "newest, oldest, top, relevance"
+            )),
+        }
+    }
+}
+
+impl TryFrom<&str> for GetPostsByQuerySortBy {
+    type Error = String;
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
+        s.parse()
+    }
+}
+
+impl core::fmt::Display for GetPostsByQuerySortBy {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl AsRef<str> for GetPostsByQuerySortBy {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl serde::Serialize for GetPostsByQuerySortBy {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for GetPostsByQuerySortBy {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = <&str>::deserialize(deserializer)?;
+        s.parse().map_err(serde::de::Error::custom)
+    }
+}
+
+impl jacquard_common::IntoStatic for GetPostsByQuerySortBy {
+    type Output = Self;
+    fn into_static(self) -> Self::Output {
+        self
+    }
+}
+
 #[derive(
-    serde::Serialize,
-    serde::Deserialize,
-    Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    jacquard_derive::IntoStatic
+    serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq, jacquard_derive::IntoStatic,
 )]
 #[serde(rename_all = "camelCase")]
 pub struct GetPostsByQuery<'a> {
@@ -20,17 +95,20 @@ pub struct GetPostsByQuery<'a> {
     pub actor: jacquard_common::types::string::Did<'a>,
     #[serde(skip_serializing_if = "std::option::Option::is_none")]
     pub cursor: std::option::Option<i64>,
-    ///(min: 1, max: 100)
+    ///(default: 50, min: 1, max: 100)
     #[serde(skip_serializing_if = "std::option::Option::is_none")]
     pub limit: std::option::Option<i64>,
     #[serde(skip_serializing_if = "std::option::Option::is_none")]
     #[serde(borrow)]
     pub query: std::option::Option<jacquard_common::CowStr<'a>>,
+    ///(default: "relevance")
+    #[serde(skip_serializing_if = "std::option::Option::is_none")]
+    pub sort_by: std::option::Option<GetPostsByQuerySortBy>,
 }
 
 pub mod get_posts_by_query_state {
 
-    pub use crate::builder_types::{Set, Unset, IsSet, IsUnset};
+    pub use crate::builder_types::{IsSet, IsUnset, Set, Unset};
     #[allow(unused)]
     use ::core::marker::PhantomData;
     mod sealed {
@@ -68,6 +146,7 @@ pub struct GetPostsByQueryBuilder<'a, S: get_posts_by_query_state::State> {
         ::core::option::Option<i64>,
         ::core::option::Option<i64>,
         ::core::option::Option<jacquard_common::CowStr<'a>>,
+        ::core::option::Option<GetPostsByQuerySortBy>,
     ),
     _phantom: ::core::marker::PhantomData<&'a ()>,
 }
@@ -84,7 +163,7 @@ impl<'a> GetPostsByQueryBuilder<'a, get_posts_by_query_state::Empty> {
     pub fn new() -> Self {
         GetPostsByQueryBuilder {
             _phantom_state: ::core::marker::PhantomData,
-            __unsafe_private_named: (None, None, None, None),
+            __unsafe_private_named: (None, None, None, None, None),
             _phantom: ::core::marker::PhantomData,
         }
     }
@@ -137,16 +216,26 @@ impl<'a, S: get_posts_by_query_state::State> GetPostsByQueryBuilder<'a, S> {
 
 impl<'a, S: get_posts_by_query_state::State> GetPostsByQueryBuilder<'a, S> {
     /// Set the `query` field (optional)
-    pub fn query(
-        mut self,
-        value: impl Into<Option<jacquard_common::CowStr<'a>>>,
-    ) -> Self {
+    pub fn query(mut self, value: impl Into<Option<jacquard_common::CowStr<'a>>>) -> Self {
         self.__unsafe_private_named.3 = value.into();
         self
     }
     /// Set the `query` field to an Option value (optional)
     pub fn maybe_query(mut self, value: Option<jacquard_common::CowStr<'a>>) -> Self {
         self.__unsafe_private_named.3 = value;
+        self
+    }
+}
+
+impl<'a, S: get_posts_by_query_state::State> GetPostsByQueryBuilder<'a, S> {
+    /// Set the `sortBy` field (optional)
+    pub fn sort_by(mut self, value: impl Into<Option<GetPostsByQuerySortBy>>) -> Self {
+        self.__unsafe_private_named.4 = value.into();
+        self
+    }
+    /// Set the `sortBy` field to an Option value (optional)
+    pub fn maybe_sort_by(mut self, value: Option<GetPostsByQuerySortBy>) -> Self {
+        self.__unsafe_private_named.4 = value;
         self
     }
 }
@@ -163,19 +252,14 @@ where
             cursor: self.__unsafe_private_named.1,
             limit: self.__unsafe_private_named.2,
             query: self.__unsafe_private_named.3,
+            sort_by: self.__unsafe_private_named.4,
         }
     }
 }
 
 #[jacquard_derive::lexicon]
 #[derive(
-    serde::Serialize,
-    serde::Deserialize,
-    Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    jacquard_derive::IntoStatic
+    serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq, jacquard_derive::IntoStatic,
 )]
 #[serde(rename_all = "camelCase")]
 pub struct GetPostsByQueryOutput<'a> {
@@ -195,7 +279,7 @@ pub struct GetPostsByQueryOutput<'a> {
     Eq,
     thiserror::Error,
     miette::Diagnostic,
-    jacquard_derive::IntoStatic
+    jacquard_derive::IntoStatic,
 )]
 #[serde(tag = "error", content = "message")]
 #[serde(bound(deserialize = "'de: 'a"))]
@@ -205,8 +289,8 @@ pub enum GetPostsByQueryError<'a> {
     ActorNotFound(std::option::Option<jacquard_common::CowStr<'a>>),
 }
 
-impl std::fmt::Display for GetPostsByQueryError<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for GetPostsByQueryError<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::ActorNotFound(msg) => {
                 write!(f, "ActorNotFound")?;

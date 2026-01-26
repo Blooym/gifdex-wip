@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM labels WHERE did = $1 AND rkey = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "79802453af72c476d7e63afa02141fdceffb0e6ffd701f1e331869c72e8f8151"
+}

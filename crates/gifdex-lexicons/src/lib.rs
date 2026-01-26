@@ -3,6 +3,7 @@
 // This file was automatically generated from Lexicon schemas.
 // Any manual changes will be overwritten on the next regeneration.
 
+extern crate alloc;
 pub mod builder_types;
 
 #[cfg(feature = "net_gifdex")]

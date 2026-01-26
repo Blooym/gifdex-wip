@@ -40,12 +40,6 @@
             "type": "string"
           }
         },
-        "languages": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
         "viewer": {
           "type": "ref",
           "ref": "#viewerState"
@@ -97,12 +91,6 @@
           "type": "integer"
         },
         "tags": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "languages": {
           "type": "array",
           "items": {
             "type": "string"

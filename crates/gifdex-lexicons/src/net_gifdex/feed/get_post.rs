@@ -32,37 +32,37 @@ pub mod get_post_state {
     }
     /// State trait tracking which required fields have been set
     pub trait State: sealed::Sealed {
-        type Actor;
         type Rkey;
+        type Actor;
     }
     /// Empty state - all required fields are unset
     pub struct Empty(());
     impl sealed::Sealed for Empty {}
     impl State for Empty {
-        type Actor = Unset;
         type Rkey = Unset;
-    }
-    ///State transition - sets the `actor` field to Set
-    pub struct SetActor<S: State = Empty>(PhantomData<fn() -> S>);
-    impl<S: State> sealed::Sealed for SetActor<S> {}
-    impl<S: State> State for SetActor<S> {
-        type Actor = Set<members::actor>;
-        type Rkey = S::Rkey;
+        type Actor = Unset;
     }
     ///State transition - sets the `rkey` field to Set
     pub struct SetRkey<S: State = Empty>(PhantomData<fn() -> S>);
     impl<S: State> sealed::Sealed for SetRkey<S> {}
     impl<S: State> State for SetRkey<S> {
-        type Actor = S::Actor;
         type Rkey = Set<members::rkey>;
+        type Actor = S::Actor;
+    }
+    ///State transition - sets the `actor` field to Set
+    pub struct SetActor<S: State = Empty>(PhantomData<fn() -> S>);
+    impl<S: State> sealed::Sealed for SetActor<S> {}
+    impl<S: State> State for SetActor<S> {
+        type Rkey = S::Rkey;
+        type Actor = Set<members::actor>;
     }
     /// Marker types for field names
     #[allow(non_camel_case_types)]
     pub mod members {
-        ///Marker type for the `actor` field
-        pub struct actor(());
         ///Marker type for the `rkey` field
         pub struct rkey(());
+        ///Marker type for the `actor` field
+        pub struct actor(());
     }
 }
 
@@ -135,8 +135,8 @@ where
 impl<'a, S> GetPostBuilder<'a, S>
 where
     S: get_post_state::State,
-    S::Actor: get_post_state::IsSet,
     S::Rkey: get_post_state::IsSet,
+    S::Actor: get_post_state::IsSet,
 {
     /// Build the final struct
     pub fn build(self) -> GetPost<'a> {
@@ -178,24 +178,14 @@ pub struct GetPostOutput<'a> {
 #[serde(tag = "error", content = "message")]
 #[serde(bound(deserialize = "'de: 'a"))]
 pub enum GetPostError<'a> {
-    /// The requested actor does not exist or has not been indexed yet.
-    #[serde(rename = "ActorNotFound")]
-    ActorNotFound(std::option::Option<jacquard_common::CowStr<'a>>),
     /// The requested post does not exist or has not been indexed yet.
     #[serde(rename = "PostNotFound")]
     PostNotFound(std::option::Option<jacquard_common::CowStr<'a>>),
 }
 
-impl std::fmt::Display for GetPostError<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for GetPostError<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::ActorNotFound(msg) => {
-                write!(f, "ActorNotFound")?;
-                if let Some(msg) = msg {
-                    write!(f, ": {}", msg)?;
-                }
-                Ok(())
-            }
             Self::PostNotFound(msg) => {
                 write!(f, "PostNotFound")?;
                 if let Some(msg) = msg {

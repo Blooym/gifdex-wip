@@ -16,9 +16,15 @@
             "type": "string",
             "maxGraphemes": 500
           },
+          "sortBy": {
+            "type": "string",
+            "enum": ["newest", "oldest", "top", "relevance"],
+            "default": "relevance"
+          },
           "limit": {
             "type": "integer",
             "minimum": 1,
+            "default": 50,
             "maximum": 100
           },
           "cursor": {

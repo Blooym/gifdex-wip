@@ -1,0 +1,258 @@
+<script lang="ts">
+	import { Plus } from 'lucide-svelte';
+	import Button from '../../base/button/Button.svelte';
+	import Checkbox from '../../base/checkbox/Checkbox.svelte';
+	import Input from '../../base/input/Input.svelte';
+	import { MAX_TAGS, uploadState } from '../state.svelte';
+	import { UploadStep } from '../types';
+
+	const isNsfwBlocked = $derived(uploadState.upload.labels.nsfw);
+	const canSubmit = $derived(!isNsfwBlocked);
+	let tagInput = $state('');
+	let error = $state('');
+
+	function handleAddTag() {
+		if (uploadState.addTag(tagInput)) {
+			tagInput = '';
+		}
+	}
+
+	function handleTagKeyPress(event: KeyboardEvent) {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			handleAddTag();
+		}
+	}
+
+	function handleBack() {
+		uploadState.setStep(UploadStep.SelectFile);
+	}
+
+	function handleSubmit(event: SubmitEvent) {
+		event.preventDefault();
+		error = '';
+
+		if (!uploadState.upload.title.trim()) {
+			error = 'Please enter a title';
+			return;
+		}
+
+		if (!uploadState.upload.file) {
+			error = 'Please select a file to upload';
+			return;
+		}
+
+		uploadState.setStep(UploadStep.UploadProgress);
+		uploadState.setProgress('uploading', 'Uploading your GIF...');
+
+		// Upload logic will be implemented here
+		console.log('Upload would happen here', {
+			title: uploadState.upload.title,
+			tags: uploadState.upload.tags,
+			labels: uploadState.upload.labels,
+			file: uploadState.upload.file
+		});
+	}
+</script>
+
+<form class="step-details" onsubmit={handleSubmit}>
+	<div class="form-entry">
+		<label for="title">Title</label>
+		<Input
+			id="title"
+			value={uploadState.upload.title}
+			oninput={(e: Event) => uploadState.setTitle((e.target as HTMLInputElement).value)}
+			surface="mantle"
+			type="text"
+			required
+			maxlength={80}
+			placeholder="Enter a title for your GIF"
+		/>
+	</div>
+
+	<div class="form-entry">
+		<label for="tags">Tags <small>(up to {MAX_TAGS})</small></label>
+		<div class="tags-input-container">
+			<Input
+				id="tags"
+				surface="mantle"
+				bind:value={tagInput}
+				type="text"
+				disabled={uploadState.upload.tags.length >= MAX_TAGS}
+				placeholder={uploadState.upload.tags.length >= MAX_TAGS
+					? 'Maximum tags reached'
+					: 'Add a tag'}
+				onkeypress={handleTagKeyPress}
+			/>
+			<Button
+				type="button"
+				onclick={handleAddTag}
+				disabled={!tagInput.trim() || uploadState.upload.tags.length >= MAX_TAGS}
+				aria-label="Add tag"
+			>
+				<Plus size={20} />
+			</Button>
+		</div>
+		{#if uploadState.upload.tags.length > 0}
+			<div class="tags-list">
+				{#each uploadState.upload.tags as tag, index}
+					<div class="tag">
+						<span>{tag}</span>
+						<button
+							type="button"
+							class="tag-remove"
+							onclick={() => uploadState.removeTag(index)}
+							aria-label="Remove tag"
+						>
+							×
+						</button>
+					</div>
+				{/each}
+			</div>
+		{/if}
+	</div>
+
+	<div class="form-entry">
+		<span class="section-label">Content Labels</span>
+		<Checkbox
+			label="Adult Content"
+			hint="Contains sexual activity or nudity"
+			checked={uploadState.upload.labels.nsfw}
+			onchange={(e: Event) => uploadState.setLabel('nsfw', (e.target as HTMLInputElement).checked)}
+			surface="mantle"
+		/>
+		<Checkbox
+			label="Flashing Imagery"
+			hint="Contains flickering lights or flashing"
+			checked={uploadState.upload.labels.photosensitive}
+			onchange={(e: Event) =>
+				uploadState.setLabel('photosensitive', (e.target as HTMLInputElement).checked)}
+			surface="mantle"
+		/>
+		<small class="disclaimer"
+			>Not labeling content appropriately will result in account restrictions.</small
+		>
+	</div>
+
+	{#if error}
+		<div class="error-message">{error}</div>
+	{/if}
+
+	<div class="step-actions">
+		<Button type="button" variant="neutral" onclick={handleBack}>Back</Button>
+		<div class="submit-group">
+			{#if isNsfwBlocked}
+				<small class="nsfw-notice">Adult content uploads are not currently supported.</small>
+			{/if}
+			<Button type="submit" disabled={!canSubmit}>Upload</Button>
+		</div>
+	</div>
+</form>
+
+<style>
+	.step-details {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 16px;
+		width: 100%;
+		max-width: 500px;
+	}
+
+	.form-entry {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		gap: 4px;
+
+		label {
+			text-align: left;
+			font-weight: bold;
+			color: var(--ctp-text);
+			font-size: 0.8rem;
+		}
+	}
+
+	.tags-input-container {
+		display: flex;
+		gap: 8px;
+	}
+
+	.tags-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-top: 8px;
+	}
+
+	.tag {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 4px 8px;
+		background: var(--ctp-surface0);
+		border: var(--border-sm) solid var(--ctp-surface1);
+		border-radius: var(--radius-md);
+		font-size: 0.9rem;
+		color: var(--ctp-text);
+	}
+
+	.tag-remove {
+		all: unset;
+		cursor: pointer;
+		color: var(--ctp-subtext0);
+		font-size: 1.25rem;
+		line-height: 1;
+		transition: color 0.2s;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		&:hover {
+			color: var(--ctp-red);
+		}
+	}
+
+	.section-label {
+		text-align: left;
+		font-weight: bold;
+		color: var(--ctp-text);
+		font-size: 0.8rem;
+	}
+
+	.disclaimer {
+		color: var(--ctp-subtext0);
+		font-size: 0.75rem;
+		text-align: left;
+		margin-top: 4px;
+	}
+
+	.error-message {
+		padding: 12px 16px;
+		background: var(--ctp-red);
+		color: var(--ctp-crust);
+		border-radius: var(--radius-md);
+		font-size: 0.875rem;
+		text-align: center;
+		width: 100%;
+	}
+
+	.step-actions {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		width: 100%;
+		margin-top: 8px;
+	}
+
+	.submit-group {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.nsfw-notice {
+		color: var(--ctp-peach);
+		font-size: 0.8rem;
+	}
+</style>

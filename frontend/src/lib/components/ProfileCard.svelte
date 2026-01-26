@@ -32,7 +32,7 @@
 <style>
 	.profile-card {
 		background: var(--ctp-mantle);
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		padding: 24px;
 		text-align: center;
 		break-inside: avoid;

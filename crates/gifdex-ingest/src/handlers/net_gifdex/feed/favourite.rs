@@ -1,6 +1,6 @@
 use crate::AppState;
 use anyhow::Result;
-use floodgate::api::RecordEventData;
+use doubletap::types::RecordEventData;
 use gifdex_lexicons::net_gifdex;
 use jacquard_common::types::{cid::Cid, collection::Collection, tid::Tid};
 use sqlx::{PgTransaction, query};
@@ -43,7 +43,7 @@ pub async fn handle_favourite_create_event(
             };
             (did, collection, rkey)
         }
-        at_uri @ _ => {
+        at_uri => {
             tracing::warn!("Rejected record: invalid subject at-uri ({at_uri:?})");
             return Ok(());
         }

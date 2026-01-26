@@ -49,7 +49,7 @@ pub async fn handle_health(
     (
         status_code,
         Json(HandleHealthResponse {
-            status: status,
+            status,
             database: database_status,
         }),
     )

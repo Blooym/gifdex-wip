@@ -7,10 +7,13 @@ use jacquard_axum::{ExtractXrpc, XrpcErrorResponse, service_auth::ExtractOptiona
 
 pub async fn handle_get_posts_by_query(
     State(_state): State<AppState>,
-    ExtractOptionalServiceAuth(_auth): ExtractOptionalServiceAuth,
+    ExtractOptionalServiceAuth(auth): ExtractOptionalServiceAuth,
     ExtractXrpc(_request): ExtractXrpc<GetPostsByQueryRequest>,
 ) -> Result<Json<GetPostsByQueryOutput<'static>>, XrpcErrorResponse<GetPostsByQueryError<'static>>>
 {
+    let auth_did = auth.as_ref().map(|a| a.did().as_str());
+    tracing::debug!("Authenticated DID for request: {auth_did:?}");
+
     // TODO: stub
     unimplemented!()
 }

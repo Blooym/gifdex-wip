@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT did, handle, display_name, avatar_blob_cid, pronouns, indexed_at,\n         (SELECT COUNT(*) FROM posts WHERE did = accounts.did) as \"post_count!\"\n         FROM accounts WHERE did = ANY($1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "did",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "handle",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "avatar_blob_cid",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "pronouns",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "indexed_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "post_count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "e0837f2c592bbecf718a6b616124c22a67c8a7e10c938647cd884246ff0f673c"
+}

@@ -4,5 +4,10 @@ members = [
     "crates/gifdex-appview",
     "crates/gifdex-ingest",
     "crates/gifdex-lexicons",
-    "crates/floodgate", "crates/gifdex-cdn",
+    "crates/doubletap",
+    "crates/gifdex-cdn",
 ]
+
+[profile.release]
+lto = true
+codegen-units = 1

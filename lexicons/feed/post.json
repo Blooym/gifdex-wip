@@ -27,15 +27,6 @@
             },
             "maxLength": 5
           },
-          "languages": {
-            "type": "array",
-            "description": "Indicates human language of post content, including title and the media itself.",
-            "items": {
-              "type": "string",
-              "format": "language"
-            },
-            "maxLength": 3
-          },
           "createdAt": {
             "type": "string",
             "format": "datetime",

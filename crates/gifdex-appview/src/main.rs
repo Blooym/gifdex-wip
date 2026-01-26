@@ -1,15 +1,19 @@
+mod cdn;
 mod database;
 mod routes;
 
-use crate::routes::{
-    handle_index,
-    well_known::handle_well_known_did,
-    xrpc::{
-        com_atproto::sync::handle_get_repo_status,
-        health::handle_health,
-        net_gifdex::{
-            actor::{handle_get_profile, handle_get_profiles},
-            feed::{handle_get_post, handle_get_posts_by_actor, handle_get_posts_by_query},
+use crate::{
+    cdn::CdnClient,
+    routes::{
+        handle_index,
+        well_known::handle_well_known_did,
+        xrpc::{
+            com_atproto::sync::handle_get_repo_status,
+            health::handle_health,
+            net_gifdex::{
+                actor::{handle_get_profile, handle_get_profiles},
+                feed::{handle_get_post, handle_get_posts_by_actor, handle_get_posts_by_query},
+            },
         },
     },
 };
@@ -57,9 +61,43 @@ use tower_http::{
 use tracing::{Level, info};
 use tracing_subscriber::EnvFilter;
 
+#[derive(Clone)]
+struct AppState(Arc<AppStateInner>);
+
+struct AppStateInner {
+    database: Database,
+    cdn: CdnClient,
+    service_did_document: DidDocument<'static>,
+    service_auth_config: ServiceAuthConfig<JacquardResolver>,
+}
+
+impl std::ops::Deref for AppState {
+    type Target = AppStateInner;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl ServiceAuth for AppState {
+    type Resolver = JacquardResolver;
+
+    fn service_did(&self) -> &Did<'_> {
+        self.service_auth_config.service_did()
+    }
+
+    fn resolver(&self) -> &Self::Resolver {
+        self.service_auth_config.resolver()
+    }
+
+    fn require_lxm(&self) -> bool {
+        ServiceAuth::require_lxm(&self.service_auth_config)
+    }
+}
+
 #[derive(Debug, Clone, Parser)]
 #[clap(author, about, version)]
-struct Arguments {
+struct LaunchArguments {
     /// Local socket address to serve the AppView on.
     #[arg(
         long = "address",
@@ -91,37 +129,13 @@ struct Arguments {
     host: Url,
 }
 
-#[derive(Clone)]
-struct AppState {
-    database: Arc<Database>,
-    cdn_url: Url,
-    service_did_document: DidDocument<'static>,
-    service_auth_config: ServiceAuthConfig<JacquardResolver>,
-}
-
-impl ServiceAuth for AppState {
-    type Resolver = JacquardResolver;
-
-    fn service_did(&self) -> &Did<'_> {
-        self.service_auth_config.service_did()
-    }
-
-    fn resolver(&self) -> &Self::Resolver {
-        self.service_auth_config.resolver()
-    }
-
-    fn require_lxm(&self) -> bool {
-        ServiceAuth::require_lxm(&self.service_auth_config)
-    }
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::try_from_default_env().unwrap_or(EnvFilter::new("info")))
         .init();
-    let args = Arguments::parse();
+    let args = LaunchArguments::parse();
 
     // Create ATProto service information.
     let service_did = Did::new_owned(format!(
@@ -138,17 +152,17 @@ async fn main() -> Result<()> {
     );
 
     // Initialise application state and required services.
-    let database = Arc::new(
-        Database::new(&args.database_url)
-            .await
-            .context("failed to connect to database")?,
-    );
+    let database = Database::new(&args.database_url)
+        .await
+        .context("failed to connect to database")?;
+    let cdn = CdnClient::new(args.cdn);
 
     // Start server.
     let router = Router::new()
         .route("/", get(handle_index))
-        .route("/xrpc/_health", get(handle_health))
         .route("/.well-known/did.json", get(handle_well_known_did))
+        // Xrpc
+        .route("/xrpc/_health", get(handle_health))
         // AtProto Sync
         .merge(GetRepoStatusRequest::into_router(handle_get_repo_status))
         // Gifdex Actor
@@ -190,12 +204,12 @@ async fn main() -> Result<()> {
                 res
             },
         ))
-        .with_state(AppState {
+        .with_state(AppState(Arc::new(AppStateInner {
             database,
-            cdn_url: args.cdn,
+            cdn,
             service_did_document: service_did_doc,
             service_auth_config,
-        });
+        })));
 
     let tcp_listener = TcpListener::bind(args.address).await?;
     info!(

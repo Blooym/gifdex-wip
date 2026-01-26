@@ -2,12 +2,10 @@
 	import type { Snippet } from 'svelte';
 	import type { HTMLButtonAttributes } from 'svelte/elements';
 
-	type Variant = 'neutral' | 'destructive' | 'primary';
-	type Size = 'small' | 'normal' | 'large';
-
 	interface Props extends HTMLButtonAttributes {
-		variant?: Variant;
-		size?: Size;
+		variant?: 'neutral' | 'destructive' | 'primary';
+		size?: 'small' | 'normal' | 'large';
+		surface?: 'base' | 'mantle';
 		class?: string;
 		children: Snippet;
 	}
@@ -15,20 +13,21 @@
 	let {
 		variant = 'primary',
 		size = 'normal',
+		surface = 'base',
 		class: className,
 		children,
 		...restProps
 	}: Props = $props();
 </script>
 
-<button class="button {variant} {size} {className}" {...restProps}>
+<button class="button {variant} {size} {surface} {className}" {...restProps}>
 	{@render children()}
 </button>
 
 <style>
 	.button {
 		border: none;
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.2s;
@@ -67,14 +66,23 @@
 	}
 
 	.neutral {
-		background: transparent;
 		color: var(--ctp-text);
-		border: 2px solid var(--ctp-surface0);
 	}
 
 	.neutral:hover:not(:disabled) {
 		border-color: var(--ctp-mauve);
 		color: var(--ctp-mauve);
+	}
+
+	/* Neutral surface variants */
+	.neutral.base {
+		background: transparent;
+		border: var(--border-md) solid var(--ctp-surface0);
+	}
+
+	.neutral.mantle {
+		background: var(--ctp-crust);
+		border: var(--border-md) solid var(--ctp-surface1);
 	}
 
 	.destructive {

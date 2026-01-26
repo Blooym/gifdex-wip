@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT 1 AS health_check",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "health_check",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "232ad29050ca5852f576802af954f854e0be3bd39deb765714c65ca5c7e99afd"
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT pds FROM accounts WHERE did = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pds",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "246e3b3dcc8b4030b2a747a8ef3cc41b52654344e1036fe28997ea6b6613f33f"
+}

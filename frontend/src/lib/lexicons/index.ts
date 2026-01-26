@@ -10,4 +10,3 @@ export * as NetGifdexFeedGetPostsByQuery from "./types/net/gifdex/feed/getPostsB
 export * as NetGifdexFeedPost from "./types/net/gifdex/feed/post.js";
 export * as NetGifdexLabelerLabel from "./types/net/gifdex/labeler/label.js";
 export * as NetGifdexLabelerRule from "./types/net/gifdex/labeler/rule.js";
-export * as NetGifdexModerationCreateReport from "./types/net/gifdex/moderation/createReport.js";

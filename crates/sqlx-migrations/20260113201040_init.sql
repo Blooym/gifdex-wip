@@ -70,7 +70,6 @@ CREATE TABLE posts(
   rkey TEXT NOT NULL,
   title TEXT NOT NULL,
   tags TEXT[],
-  languages TEXT[],
   media_blob_cid TEXT NOT NULL,
   media_blob_mime TEXT NOT NULL,
   media_blob_alt TEXT,

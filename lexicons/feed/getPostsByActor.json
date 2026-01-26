@@ -15,7 +15,13 @@
           "limit": {
             "type": "integer",
             "minimum": 1,
+            "default": 50,
             "maximum": 100
+          },
+          "sortBy": {
+            "type": "string",
+            "enum": ["newest", "oldest", "top"],
+            "default": "newest"
           },
           "cursor": {
             "type": "integer"

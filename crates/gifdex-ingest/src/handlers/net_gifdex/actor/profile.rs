@@ -1,5 +1,5 @@
 use anyhow::Result;
-use floodgate::api::RecordEventData;
+use doubletap::types::RecordEventData;
 use gifdex_lexicons::net_gifdex;
 use sqlx::{PgTransaction, query};
 use tracing::{error, info, warn};

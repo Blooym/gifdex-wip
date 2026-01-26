@@ -19,9 +19,6 @@
 pub struct Post<'a> {
     /// Client-declared timestamp when this post was originally created.
     pub created_at: jacquard_common::types::string::Datetime,
-    /// Indicates human language of post content, including title and the media itself.
-    #[serde(skip_serializing_if = "std::option::Option::is_none")]
-    pub languages: std::option::Option<Vec<jacquard_common::types::string::Language>>,
     #[serde(borrow)]
     pub media: crate::net_gifdex::feed::post::PostMedia<'a>,
     /// Tags that apply to the content of the post, used for discoverability.
@@ -43,49 +40,49 @@ pub mod post_state {
     }
     /// State trait tracking which required fields have been set
     pub trait State: sealed::Sealed {
-        type Title;
         type CreatedAt;
+        type Title;
         type Media;
     }
     /// Empty state - all required fields are unset
     pub struct Empty(());
     impl sealed::Sealed for Empty {}
     impl State for Empty {
-        type Title = Unset;
         type CreatedAt = Unset;
+        type Title = Unset;
         type Media = Unset;
-    }
-    ///State transition - sets the `title` field to Set
-    pub struct SetTitle<S: State = Empty>(PhantomData<fn() -> S>);
-    impl<S: State> sealed::Sealed for SetTitle<S> {}
-    impl<S: State> State for SetTitle<S> {
-        type Title = Set<members::title>;
-        type CreatedAt = S::CreatedAt;
-        type Media = S::Media;
     }
     ///State transition - sets the `created_at` field to Set
     pub struct SetCreatedAt<S: State = Empty>(PhantomData<fn() -> S>);
     impl<S: State> sealed::Sealed for SetCreatedAt<S> {}
     impl<S: State> State for SetCreatedAt<S> {
-        type Title = S::Title;
         type CreatedAt = Set<members::created_at>;
+        type Title = S::Title;
+        type Media = S::Media;
+    }
+    ///State transition - sets the `title` field to Set
+    pub struct SetTitle<S: State = Empty>(PhantomData<fn() -> S>);
+    impl<S: State> sealed::Sealed for SetTitle<S> {}
+    impl<S: State> State for SetTitle<S> {
+        type CreatedAt = S::CreatedAt;
+        type Title = Set<members::title>;
         type Media = S::Media;
     }
     ///State transition - sets the `media` field to Set
     pub struct SetMedia<S: State = Empty>(PhantomData<fn() -> S>);
     impl<S: State> sealed::Sealed for SetMedia<S> {}
     impl<S: State> State for SetMedia<S> {
-        type Title = S::Title;
         type CreatedAt = S::CreatedAt;
+        type Title = S::Title;
         type Media = Set<members::media>;
     }
     /// Marker types for field names
     #[allow(non_camel_case_types)]
     pub mod members {
-        ///Marker type for the `title` field
-        pub struct title(());
         ///Marker type for the `created_at` field
         pub struct created_at(());
+        ///Marker type for the `title` field
+        pub struct title(());
         ///Marker type for the `media` field
         pub struct media(());
     }
@@ -96,7 +93,6 @@ pub struct PostBuilder<'a, S: post_state::State> {
     _phantom_state: ::core::marker::PhantomData<fn() -> S>,
     __unsafe_private_named: (
         ::core::option::Option<jacquard_common::types::string::Datetime>,
-        ::core::option::Option<Vec<jacquard_common::types::string::Language>>,
         ::core::option::Option<crate::net_gifdex::feed::post::PostMedia<'a>>,
         ::core::option::Option<Vec<jacquard_common::CowStr<'a>>>,
         ::core::option::Option<jacquard_common::CowStr<'a>>,
@@ -116,7 +112,7 @@ impl<'a> PostBuilder<'a, post_state::Empty> {
     pub fn new() -> Self {
         PostBuilder {
             _phantom_state: ::core::marker::PhantomData,
-            __unsafe_private_named: (None, None, None, None, None),
+            __unsafe_private_named: (None, None, None, None),
             _phantom: ::core::marker::PhantomData,
         }
     }
@@ -141,25 +137,6 @@ where
     }
 }
 
-impl<'a, S: post_state::State> PostBuilder<'a, S> {
-    /// Set the `languages` field (optional)
-    pub fn languages(
-        mut self,
-        value: impl Into<Option<Vec<jacquard_common::types::string::Language>>>,
-    ) -> Self {
-        self.__unsafe_private_named.1 = value.into();
-        self
-    }
-    /// Set the `languages` field to an Option value (optional)
-    pub fn maybe_languages(
-        mut self,
-        value: Option<Vec<jacquard_common::types::string::Language>>,
-    ) -> Self {
-        self.__unsafe_private_named.1 = value;
-        self
-    }
-}
-
 impl<'a, S> PostBuilder<'a, S>
 where
     S: post_state::State,
@@ -170,7 +147,7 @@ where
         mut self,
         value: impl Into<crate::net_gifdex::feed::post::PostMedia<'a>>,
     ) -> PostBuilder<'a, post_state::SetMedia<S>> {
-        self.__unsafe_private_named.2 = ::core::option::Option::Some(value.into());
+        self.__unsafe_private_named.1 = ::core::option::Option::Some(value.into());
         PostBuilder {
             _phantom_state: ::core::marker::PhantomData,
             __unsafe_private_named: self.__unsafe_private_named,
@@ -185,7 +162,7 @@ impl<'a, S: post_state::State> PostBuilder<'a, S> {
         mut self,
         value: impl Into<Option<Vec<jacquard_common::CowStr<'a>>>>,
     ) -> Self {
-        self.__unsafe_private_named.3 = value.into();
+        self.__unsafe_private_named.2 = value.into();
         self
     }
     /// Set the `tags` field to an Option value (optional)
@@ -193,7 +170,7 @@ impl<'a, S: post_state::State> PostBuilder<'a, S> {
         mut self,
         value: Option<Vec<jacquard_common::CowStr<'a>>>,
     ) -> Self {
-        self.__unsafe_private_named.3 = value;
+        self.__unsafe_private_named.2 = value;
         self
     }
 }
@@ -208,7 +185,7 @@ where
         mut self,
         value: impl Into<jacquard_common::CowStr<'a>>,
     ) -> PostBuilder<'a, post_state::SetTitle<S>> {
-        self.__unsafe_private_named.4 = ::core::option::Option::Some(value.into());
+        self.__unsafe_private_named.3 = ::core::option::Option::Some(value.into());
         PostBuilder {
             _phantom_state: ::core::marker::PhantomData,
             __unsafe_private_named: self.__unsafe_private_named,
@@ -220,18 +197,17 @@ where
 impl<'a, S> PostBuilder<'a, S>
 where
     S: post_state::State,
-    S::Title: post_state::IsSet,
     S::CreatedAt: post_state::IsSet,
+    S::Title: post_state::IsSet,
     S::Media: post_state::IsSet,
 {
     /// Build the final struct
     pub fn build(self) -> Post<'a> {
         Post {
             created_at: self.__unsafe_private_named.0.unwrap(),
-            languages: self.__unsafe_private_named.1,
-            media: self.__unsafe_private_named.2.unwrap(),
-            tags: self.__unsafe_private_named.3,
-            title: self.__unsafe_private_named.4.unwrap(),
+            media: self.__unsafe_private_named.1.unwrap(),
+            tags: self.__unsafe_private_named.2,
+            title: self.__unsafe_private_named.3.unwrap(),
             extra_data: Default::default(),
         }
     }
@@ -245,10 +221,9 @@ where
     ) -> Post<'a> {
         Post {
             created_at: self.__unsafe_private_named.0.unwrap(),
-            languages: self.__unsafe_private_named.1,
-            media: self.__unsafe_private_named.2.unwrap(),
-            tags: self.__unsafe_private_named.3,
-            title: self.__unsafe_private_named.4.unwrap(),
+            media: self.__unsafe_private_named.1.unwrap(),
+            tags: self.__unsafe_private_named.2,
+            title: self.__unsafe_private_named.3.unwrap(),
             extra_data: Some(extra_data),
         }
     }
@@ -327,19 +302,7 @@ impl<'a> ::jacquard_lexicon::schema::LexiconSchema for Post<'a> {
     }
     fn validate(
         &self,
-    ) -> ::std::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
-        if let Some(ref value) = self.languages {
-            #[allow(unused_comparisons)]
-            if value.len() > 3usize {
-                return Err(::jacquard_lexicon::validation::ConstraintError::MaxLength {
-                    path: ::jacquard_lexicon::validation::ValidationPath::from_field(
-                        "languages",
-                    ),
-                    max: 3usize,
-                    actual: value.len(),
-                });
-            }
-        }
+    ) -> ::core::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
         if let Some(ref value) = self.tags {
             #[allow(unused_comparisons)]
             if value.len() > 5usize {
@@ -384,7 +347,7 @@ fn lexicon_doc_net_gifdex_feed_post() -> ::jacquard_lexicon::lexicon::LexiconDoc
         revision: None,
         description: None,
         defs: {
-            let mut map = ::std::collections::BTreeMap::new();
+            let mut map = ::alloc::collections::BTreeMap::new();
             map.insert(
                 ::jacquard_common::smol_str::SmolStr::new_static("main"),
                 ::jacquard_lexicon::lexicon::LexUserType::Record(::jacquard_lexicon::lexicon::LexRecord {
@@ -402,7 +365,7 @@ fn lexicon_doc_net_gifdex_feed_post() -> ::jacquard_lexicon::lexicon::LexiconDoc
                         nullable: None,
                         properties: {
                             #[allow(unused_mut)]
-                            let mut map = ::std::collections::BTreeMap::new();
+                            let mut map = ::alloc::collections::BTreeMap::new();
                             map.insert(
                                 ::jacquard_common::smol_str::SmolStr::new_static(
                                     "createdAt",
@@ -424,34 +387,6 @@ fn lexicon_doc_net_gifdex_feed_post() -> ::jacquard_lexicon::lexicon::LexiconDoc
                                     r#enum: None,
                                     r#const: None,
                                     known_values: None,
-                                }),
-                            );
-                            map.insert(
-                                ::jacquard_common::smol_str::SmolStr::new_static(
-                                    "languages",
-                                ),
-                                ::jacquard_lexicon::lexicon::LexObjectProperty::Array(::jacquard_lexicon::lexicon::LexArray {
-                                    description: Some(
-                                        ::jacquard_common::CowStr::new_static(
-                                            "Indicates human language of post content, including title and the media itself.",
-                                        ),
-                                    ),
-                                    items: ::jacquard_lexicon::lexicon::LexArrayItem::String(::jacquard_lexicon::lexicon::LexString {
-                                        description: None,
-                                        format: Some(
-                                            ::jacquard_lexicon::lexicon::LexStringFormat::Language,
-                                        ),
-                                        default: None,
-                                        min_length: None,
-                                        max_length: None,
-                                        min_graphemes: None,
-                                        max_graphemes: None,
-                                        r#enum: None,
-                                        r#const: None,
-                                        known_values: None,
-                                    }),
-                                    min_length: None,
-                                    max_length: Some(3usize),
                                 }),
                             );
                             map.insert(
@@ -523,7 +458,7 @@ fn lexicon_doc_net_gifdex_feed_post() -> ::jacquard_lexicon::lexicon::LexiconDoc
                     nullable: None,
                     properties: {
                         #[allow(unused_mut)]
-                        let mut map = ::std::collections::BTreeMap::new();
+                        let mut map = ::alloc::collections::BTreeMap::new();
                         map.insert(
                             ::jacquard_common::smol_str::SmolStr::new_static("alt"),
                             ::jacquard_lexicon::lexicon::LexObjectProperty::String(::jacquard_lexicon::lexicon::LexString {
@@ -709,7 +644,7 @@ impl<'a> ::jacquard_lexicon::schema::LexiconSchema for PostMedia<'a> {
     }
     fn validate(
         &self,
-    ) -> ::std::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
+    ) -> ::core::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
         if let Some(ref value) = self.alt {
             {
                 let count = ::unicode_segmentation::UnicodeSegmentation::graphemes(

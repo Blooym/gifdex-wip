@@ -6,9 +6,15 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use reqwest::{StatusCode, header};
-use std::{sync::OnceLock, time::SystemTime};
+use std::{
+    sync::OnceLock,
+    time::SystemTime,
+};
 
-pub async fn handle_well_known_did(State(state): State<AppState>, headers: HeaderMap) -> Response {
+pub async fn handle_well_known_did(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Response {
     // Best attempt at helping clients avoid updating their internal cache when unnecessary.
     // Just send the first-request time as the service document cannot change at runtime.
     static LAST_MODIFIED: OnceLock<(SystemTime, String)> = OnceLock::new();
@@ -31,7 +37,7 @@ pub async fn handle_well_known_did(State(state): State<AppState>, headers: Heade
             axum::http::header::LAST_MODIFIED,
             HeaderValue::from_str(&last_modified.1).unwrap(),
         )],
-        Json(state.service_did_document),
+        Json(&state.service_did_document),
     )
         .into_response()
 }

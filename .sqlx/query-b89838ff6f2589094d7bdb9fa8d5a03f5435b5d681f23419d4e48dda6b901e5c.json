@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO accounts (did, handle, pds, is_active, status, created_at) VALUES ($1, $2, $3, $4, $5, (extract(epoch from now()) * 1000)::BIGINT) ON CONFLICT(did) DO UPDATE SET handle = excluded.handle, is_active = excluded.is_active, pds = excluded.pds, status = excluded.status",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b89838ff6f2589094d7bdb9fa8d5a03f5435b5d681f23419d4e48dda6b901e5c"
+}

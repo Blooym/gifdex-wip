@@ -10,11 +10,13 @@ const _mainSchema = /*#__PURE__*/ v.query("net.gifdex.feed.getPostsByQuery", {
     /**
      * @minimum 1
      * @maximum 100
+     * @default 50
      */
     limit: /*#__PURE__*/ v.optional(
       /*#__PURE__*/ v.constrain(/*#__PURE__*/ v.integer(), [
         /*#__PURE__*/ v.integerRange(1, 100),
       ]),
+      50,
     ),
     /**
      * @maxGraphemes 500
@@ -23,6 +25,13 @@ const _mainSchema = /*#__PURE__*/ v.query("net.gifdex.feed.getPostsByQuery", {
       /*#__PURE__*/ v.constrain(/*#__PURE__*/ v.string(), [
         /*#__PURE__*/ v.stringGraphemes(0, 500),
       ]),
+    ),
+    /**
+     * @default "relevance"
+     */
+    sortBy: /*#__PURE__*/ v.optional(
+      /*#__PURE__*/ v.literalEnum(["newest", "oldest", "relevance", "top"]),
+      "relevance",
     ),
   }),
   output: {

@@ -10,11 +10,20 @@ const _mainSchema = /*#__PURE__*/ v.query("net.gifdex.feed.getPostsByActor", {
     /**
      * @minimum 1
      * @maximum 100
+     * @default 50
      */
     limit: /*#__PURE__*/ v.optional(
       /*#__PURE__*/ v.constrain(/*#__PURE__*/ v.integer(), [
         /*#__PURE__*/ v.integerRange(1, 100),
       ]),
+      50,
+    ),
+    /**
+     * @default "newest"
+     */
+    sortBy: /*#__PURE__*/ v.optional(
+      /*#__PURE__*/ v.literalEnum(["newest", "oldest", "top"]),
+      "newest",
     ),
   }),
   output: {

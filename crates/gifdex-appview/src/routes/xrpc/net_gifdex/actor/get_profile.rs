@@ -1,25 +1,25 @@
-use crate::AppState;
+use crate::{AppState, cdn::CdnMediaType};
 use axum::{Json, extract::State};
 use gifdex_lexicons::net_gifdex::actor::{
     ProfileView,
     get_profile::{GetProfileError, GetProfileOutput, GetProfileRequest},
 };
 use jacquard_axum::{ExtractXrpc, XrpcErrorResponse, service_auth::ExtractOptionalServiceAuth};
-use jacquard_common::{
-    types::{string::Handle, uri::Uri},
-    xrpc::XrpcError,
-};
+use jacquard_common::{types::uri::Uri, xrpc::XrpcError};
 use sqlx::query;
 
 pub async fn handle_get_profile(
     State(state): State<AppState>,
-    ExtractOptionalServiceAuth(_auth): ExtractOptionalServiceAuth,
+    ExtractOptionalServiceAuth(auth): ExtractOptionalServiceAuth,
     ExtractXrpc(request): ExtractXrpc<GetProfileRequest>,
 ) -> Result<Json<GetProfileOutput<'static>>, XrpcErrorResponse<GetProfileError<'static>>> {
+    let auth_did = auth.as_ref().map(|a| a.did().as_str());
+    tracing::debug!("Authenticated DID for request: {auth_did:?}");
+
     let account = query!(
-        "SELECT did, handle, display_name, avatar_blob_cid, pronouns, indexed_at,
-        (SELECT COUNT(*) FROM posts WHERE did = accounts.did) as \"post_count!\"
-        FROM accounts WHERE did = $1 OR handle = $1",
+        r#"SELECT did, handle, display_name, avatar_blob_cid, pronouns, indexed_at,
+        (SELECT COUNT(*) FROM posts WHERE did = accounts.did) as "post_count!"
+        FROM accounts WHERE did = $1"#,
         request.actor.as_str()
     )
     .fetch_optional(state.database.executor())
@@ -32,22 +32,16 @@ pub async fn handle_get_profile(
 
     Ok(Json(GetProfileOutput {
         value: ProfileView::new()
-            .did(request.actor)
-            .handle(
-                account
-                    .handle
-                    .map(|handle| handle.parse::<Handle>().unwrap()),
-            )
+            .did(request.actor.clone())
+            .handle(account.handle.map(|handle| handle.parse().unwrap()))
             .display_name(account.display_name.map(|display_name| display_name.into()))
             .pronouns(account.pronouns.map(|pronouns| pronouns.into()))
-            .avatar(account.avatar_blob_cid.map(|blob_cid| {
-                Uri::new_owned(
-                    state
-                        .cdn_url
-                        .join(&format!("/avatar/{}/{}", account.did, blob_cid))
-                        .unwrap(),
-                )
-                .unwrap()
+            .avatar(account.avatar_blob_cid.and_then(|bc| {
+                Uri::new_owned(state.cdn.make_cdn_url(CdnMediaType::Avatar {
+                    did: &request.actor,
+                    cid: &bc.parse().ok()?,
+                }))
+                .ok()
             }))
             .post_count(account.post_count)
             .build(),

@@ -1,6 +1,6 @@
 use crate::AppState;
 use anyhow::{Context, Result, bail};
-use floodgate::api::RecordEventData;
+use doubletap::types::RecordEventData;
 use gifdex_lexicons::net_gifdex;
 use jacquard_common::types::{cid::Cid, tid::Tid};
 use sqlx::{PgTransaction, query};
@@ -51,7 +51,7 @@ pub async fn handle_post_create(
         return Ok(());
     }
 
-    // Extract tag/lang data.
+    // Extract tag data.
     let tags_array = data
         .tags
         .as_ref()
@@ -61,17 +61,10 @@ pub async fn handle_post_create(
                 .map(|cow| cow.to_string())
                 .collect::<Vec<String>>()
         });
-    let languages_array = data
-        .languages
-        .as_ref()
-        .filter(|langs| !langs.is_empty())
-        .map(|langs| {
-            langs
-                .iter()
-                .map(|cow| cow.to_string())
-                .collect::<Vec<String>>()
-        });
 
+    // TODO: This fetches the blob and does validations every update,
+    // but blobs can never change. We need to branch here to do different operations
+    // on different calls.
     let pds = state
         .tap_client
         .resolve_did(&record_data.did)
@@ -87,16 +80,16 @@ pub async fn handle_post_create(
         &state.http_client,
     )
     .await?;
-    println!("{response:?}");
 
     match query!(
         "INSERT INTO posts (did, rkey, title, media_blob_cid, media_blob_mime, \
-         media_blob_alt, media_blob_width, media_blob_height, tags, languages, created_at) \
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) \
+         media_blob_alt, media_blob_width, media_blob_height, tags, created_at) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) \
          ON CONFLICT(did, rkey) DO UPDATE SET \
          title = excluded.title, \
          media_blob_alt = excluded.media_blob_alt, \
          tags = excluded.tags, \
+         created_at = excluded.created_at, \
          edited_at = extract(epoch from now())::BIGINT",
         record_data.did.as_str(),
         record_data.rkey.as_str(),
@@ -107,7 +100,6 @@ pub async fn handle_post_create(
         response.width as i64,
         response.height as i64,
         tags_array.as_deref(),
-        languages_array.as_deref(),
         data.created_at.as_ref().timestamp_millis()
     )
     .execute(&mut **tx)

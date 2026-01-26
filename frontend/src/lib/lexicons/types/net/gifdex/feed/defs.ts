@@ -13,9 +13,6 @@ const _postFeedViewSchema = /*#__PURE__*/ v.object({
   editedAt: /*#__PURE__*/ v.optional(/*#__PURE__*/ v.datetimeString()),
   favouriteCount: /*#__PURE__*/ v.integer(),
   indexedAt: /*#__PURE__*/ v.datetimeString(),
-  languages: /*#__PURE__*/ v.optional(
-    /*#__PURE__*/ v.array(/*#__PURE__*/ v.string()),
-  ),
   get media() {
     return postViewMediaSchema;
   },
@@ -39,9 +36,6 @@ const _postViewSchema = /*#__PURE__*/ v.object({
   editedAt: /*#__PURE__*/ v.optional(/*#__PURE__*/ v.datetimeString()),
   favouriteCount: /*#__PURE__*/ v.integer(),
   indexedAt: /*#__PURE__*/ v.datetimeString(),
-  languages: /*#__PURE__*/ v.optional(
-    /*#__PURE__*/ v.array(/*#__PURE__*/ v.string()),
-  ),
   get media() {
     return postViewMediaSchema;
   },

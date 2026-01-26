@@ -5,7 +5,7 @@ use crate::{database::Database, handlers::handle_event};
 use anyhow::{Context, Result};
 use clap::Parser;
 use dotenvy::dotenv;
-use floodgate::client::TapClient;
+use doubletap::client::TapClient;
 use std::{num::NonZero, sync::Arc, time::Duration};
 use tracing_subscriber::EnvFilter;
 use url::Url;
@@ -62,7 +62,6 @@ async fn main() -> Result<()> {
         ))
         .build()
         .context("failed to initialise http client")?;
-
     let database = Database::new(&args.database_url)
         .await
         .context("failed to initialise database")?;

@@ -49,37 +49,37 @@ pub mod profile_view_state {
     }
     /// State trait tracking which required fields have been set
     pub trait State: sealed::Sealed {
-        type PostCount;
         type Did;
+        type PostCount;
     }
     /// Empty state - all required fields are unset
     pub struct Empty(());
     impl sealed::Sealed for Empty {}
     impl State for Empty {
-        type PostCount = Unset;
         type Did = Unset;
-    }
-    ///State transition - sets the `post_count` field to Set
-    pub struct SetPostCount<S: State = Empty>(PhantomData<fn() -> S>);
-    impl<S: State> sealed::Sealed for SetPostCount<S> {}
-    impl<S: State> State for SetPostCount<S> {
-        type PostCount = Set<members::post_count>;
-        type Did = S::Did;
+        type PostCount = Unset;
     }
     ///State transition - sets the `did` field to Set
     pub struct SetDid<S: State = Empty>(PhantomData<fn() -> S>);
     impl<S: State> sealed::Sealed for SetDid<S> {}
     impl<S: State> State for SetDid<S> {
-        type PostCount = S::PostCount;
         type Did = Set<members::did>;
+        type PostCount = S::PostCount;
+    }
+    ///State transition - sets the `post_count` field to Set
+    pub struct SetPostCount<S: State = Empty>(PhantomData<fn() -> S>);
+    impl<S: State> sealed::Sealed for SetPostCount<S> {}
+    impl<S: State> State for SetPostCount<S> {
+        type Did = S::Did;
+        type PostCount = Set<members::post_count>;
     }
     /// Marker types for field names
     #[allow(non_camel_case_types)]
     pub mod members {
-        ///Marker type for the `post_count` field
-        pub struct post_count(());
         ///Marker type for the `did` field
         pub struct did(());
+        ///Marker type for the `post_count` field
+        pub struct post_count(());
     }
 }
 
@@ -229,8 +229,8 @@ impl<'a, S: profile_view_state::State> ProfileViewBuilder<'a, S> {
 impl<'a, S> ProfileViewBuilder<'a, S>
 where
     S: profile_view_state::State,
-    S::PostCount: profile_view_state::IsSet,
     S::Did: profile_view_state::IsSet,
+    S::PostCount: profile_view_state::IsSet,
 {
     /// Build the final struct
     pub fn build(self) -> ProfileView<'a> {
@@ -273,7 +273,7 @@ fn lexicon_doc_net_gifdex_actor_defs() -> ::jacquard_lexicon::lexicon::LexiconDo
         revision: None,
         description: None,
         defs: {
-            let mut map = ::std::collections::BTreeMap::new();
+            let mut map = ::alloc::collections::BTreeMap::new();
             map.insert(
                 ::jacquard_common::smol_str::SmolStr::new_static("profileView"),
                 ::jacquard_lexicon::lexicon::LexUserType::Object(::jacquard_lexicon::lexicon::LexObject {
@@ -291,7 +291,7 @@ fn lexicon_doc_net_gifdex_actor_defs() -> ::jacquard_lexicon::lexicon::LexiconDo
                     nullable: None,
                     properties: {
                         #[allow(unused_mut)]
-                        let mut map = ::std::collections::BTreeMap::new();
+                        let mut map = ::alloc::collections::BTreeMap::new();
                         map.insert(
                             ::jacquard_common::smol_str::SmolStr::new_static("avatar"),
                             ::jacquard_lexicon::lexicon::LexObjectProperty::String(::jacquard_lexicon::lexicon::LexString {
@@ -406,7 +406,7 @@ fn lexicon_doc_net_gifdex_actor_defs() -> ::jacquard_lexicon::lexicon::LexiconDo
                     nullable: None,
                     properties: {
                         #[allow(unused_mut)]
-                        let mut map = ::std::collections::BTreeMap::new();
+                        let mut map = ::alloc::collections::BTreeMap::new();
                         map.insert(
                             ::jacquard_common::smol_str::SmolStr::new_static("avatar"),
                             ::jacquard_lexicon::lexicon::LexObjectProperty::String(::jacquard_lexicon::lexicon::LexString {
@@ -493,7 +493,7 @@ fn lexicon_doc_net_gifdex_actor_defs() -> ::jacquard_lexicon::lexicon::LexiconDo
                     nullable: None,
                     properties: {
                         #[allow(unused_mut)]
-                        let mut map = ::std::collections::BTreeMap::new();
+                        let mut map = ::alloc::collections::BTreeMap::new();
                         map.insert(
                             ::jacquard_common::smol_str::SmolStr::new_static("avatar"),
                             ::jacquard_lexicon::lexicon::LexObjectProperty::String(::jacquard_lexicon::lexicon::LexString {
@@ -583,7 +583,7 @@ impl<'a> ::jacquard_lexicon::schema::LexiconSchema for ProfileView<'a> {
     }
     fn validate(
         &self,
-    ) -> ::std::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
+    ) -> ::core::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
         if let Some(ref value) = self.display_name {
             {
                 let count = ::unicode_segmentation::UnicodeSegmentation::graphemes(
@@ -833,7 +833,7 @@ impl<'a> ::jacquard_lexicon::schema::LexiconSchema for ProfileViewBasic<'a> {
     }
     fn validate(
         &self,
-    ) -> ::std::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
+    ) -> ::core::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
         if let Some(ref value) = self.display_name {
             {
                 let count = ::unicode_segmentation::UnicodeSegmentation::graphemes(
@@ -1065,7 +1065,7 @@ impl<'a> ::jacquard_lexicon::schema::LexiconSchema for ProfileViewMinimal<'a> {
     }
     fn validate(
         &self,
-    ) -> ::std::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
+    ) -> ::core::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
         if let Some(ref value) = self.display_name {
             {
                 let count = ::unicode_segmentation::UnicodeSegmentation::graphemes(

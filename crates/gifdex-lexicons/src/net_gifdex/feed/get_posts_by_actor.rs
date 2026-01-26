@@ -5,14 +5,86 @@
 // This file was automatically generated from Lexicon schemas.
 // Any manual changes will be overwritten on the next regeneration.
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GetPostsByActorSortBy {
+    Newest,
+    Oldest,
+    Top,
+}
+
+impl GetPostsByActorSortBy {
+    /// Returns the string representation of this enum variant.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Newest => "newest",
+            Self::Oldest => "oldest",
+            Self::Top => "top",
+        }
+    }
+}
+
+impl core::str::FromStr for GetPostsByActorSortBy {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "newest" => Ok(Self::Newest),
+            "oldest" => Ok(Self::Oldest),
+            "top" => Ok(Self::Top),
+            _ => Err(format!(
+                "invalid value '{}', expected one of: {}",
+                s, "newest, oldest, top"
+            )),
+        }
+    }
+}
+
+impl TryFrom<&str> for GetPostsByActorSortBy {
+    type Error = String;
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
+        s.parse()
+    }
+}
+
+impl core::fmt::Display for GetPostsByActorSortBy {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl AsRef<str> for GetPostsByActorSortBy {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl serde::Serialize for GetPostsByActorSortBy {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for GetPostsByActorSortBy {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = <&str>::deserialize(deserializer)?;
+        s.parse().map_err(serde::de::Error::custom)
+    }
+}
+
+impl jacquard_common::IntoStatic for GetPostsByActorSortBy {
+    type Output = Self;
+    fn into_static(self) -> Self::Output {
+        self
+    }
+}
+
 #[derive(
-    serde::Serialize,
-    serde::Deserialize,
-    Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    jacquard_derive::IntoStatic
+    serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq, jacquard_derive::IntoStatic,
 )]
 #[serde(rename_all = "camelCase")]
 pub struct GetPostsByActor<'a> {
@@ -20,14 +92,17 @@ pub struct GetPostsByActor<'a> {
     pub actor: jacquard_common::types::string::Did<'a>,
     #[serde(skip_serializing_if = "std::option::Option::is_none")]
     pub cursor: std::option::Option<i64>,
-    ///(min: 1, max: 100)
+    ///(default: 50, min: 1, max: 100)
     #[serde(skip_serializing_if = "std::option::Option::is_none")]
     pub limit: std::option::Option<i64>,
+    ///(default: "newest")
+    #[serde(skip_serializing_if = "std::option::Option::is_none")]
+    pub sort_by: std::option::Option<GetPostsByActorSortBy>,
 }
 
 pub mod get_posts_by_actor_state {
 
-    pub use crate::builder_types::{Set, Unset, IsSet, IsUnset};
+    pub use crate::builder_types::{IsSet, IsUnset, Set, Unset};
     #[allow(unused)]
     use ::core::marker::PhantomData;
     mod sealed {
@@ -64,6 +139,7 @@ pub struct GetPostsByActorBuilder<'a, S: get_posts_by_actor_state::State> {
         ::core::option::Option<jacquard_common::types::string::Did<'a>>,
         ::core::option::Option<i64>,
         ::core::option::Option<i64>,
+        ::core::option::Option<GetPostsByActorSortBy>,
     ),
     _phantom: ::core::marker::PhantomData<&'a ()>,
 }
@@ -80,7 +156,7 @@ impl<'a> GetPostsByActorBuilder<'a, get_posts_by_actor_state::Empty> {
     pub fn new() -> Self {
         GetPostsByActorBuilder {
             _phantom_state: ::core::marker::PhantomData,
-            __unsafe_private_named: (None, None, None),
+            __unsafe_private_named: (None, None, None, None),
             _phantom: ::core::marker::PhantomData,
         }
     }
@@ -131,6 +207,19 @@ impl<'a, S: get_posts_by_actor_state::State> GetPostsByActorBuilder<'a, S> {
     }
 }
 
+impl<'a, S: get_posts_by_actor_state::State> GetPostsByActorBuilder<'a, S> {
+    /// Set the `sortBy` field (optional)
+    pub fn sort_by(mut self, value: impl Into<Option<GetPostsByActorSortBy>>) -> Self {
+        self.__unsafe_private_named.3 = value.into();
+        self
+    }
+    /// Set the `sortBy` field to an Option value (optional)
+    pub fn maybe_sort_by(mut self, value: Option<GetPostsByActorSortBy>) -> Self {
+        self.__unsafe_private_named.3 = value;
+        self
+    }
+}
+
 impl<'a, S> GetPostsByActorBuilder<'a, S>
 where
     S: get_posts_by_actor_state::State,
@@ -142,19 +231,14 @@ where
             actor: self.__unsafe_private_named.0.unwrap(),
             cursor: self.__unsafe_private_named.1,
             limit: self.__unsafe_private_named.2,
+            sort_by: self.__unsafe_private_named.3,
         }
     }
 }
 
 #[jacquard_derive::lexicon]
 #[derive(
-    serde::Serialize,
-    serde::Deserialize,
-    Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    jacquard_derive::IntoStatic
+    serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq, jacquard_derive::IntoStatic,
 )]
 #[serde(rename_all = "camelCase")]
 pub struct GetPostsByActorOutput<'a> {
@@ -174,7 +258,7 @@ pub struct GetPostsByActorOutput<'a> {
     Eq,
     thiserror::Error,
     miette::Diagnostic,
-    jacquard_derive::IntoStatic
+    jacquard_derive::IntoStatic,
 )]
 #[serde(tag = "error", content = "message")]
 #[serde(bound(deserialize = "'de: 'a"))]
@@ -184,8 +268,8 @@ pub enum GetPostsByActorError<'a> {
     ActorNotFound(std::option::Option<jacquard_common::CowStr<'a>>),
 }
 
-impl std::fmt::Display for GetPostsByActorError<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for GetPostsByActorError<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::ActorNotFound(msg) => {
                 write!(f, "ActorNotFound")?;

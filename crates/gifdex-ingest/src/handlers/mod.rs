@@ -2,19 +2,22 @@ mod identity;
 mod net_gifdex;
 
 use crate::AppState;
-use crate::handlers;
-use crate::handlers::net_gifdex::actor::handle_profile_create_event;
-use crate::handlers::net_gifdex::actor::handle_profile_delete_event;
-use crate::handlers::net_gifdex::feed::handle_favourite_create_event;
-use crate::handlers::net_gifdex::feed::handle_favourite_delete_event;
-use crate::handlers::net_gifdex::feed::handle_post_create;
-use crate::handlers::net_gifdex::feed::handle_post_delete;
-use crate::handlers::net_gifdex::labeler::handle_label_create_event;
-use crate::handlers::net_gifdex::labeler::handle_label_delete_event;
-use crate::handlers::net_gifdex::labeler::handle_rule_create_event;
-use crate::handlers::net_gifdex::labeler::handle_rule_delete_event;
+use crate::handlers::{
+    self,
+    net_gifdex::{
+        actor::{handle_profile_create_event, handle_profile_delete_event},
+        feed::{
+            handle_favourite_create_event, handle_favourite_delete_event, handle_post_create,
+            handle_post_delete,
+        },
+        labeler::{
+            handle_label_create_event, handle_label_delete_event, handle_rule_create_event,
+            handle_rule_delete_event,
+        },
+    },
+};
 use anyhow::bail;
-use floodgate::api::{EventData, RecordAction};
+use doubletap::types::{EventData, RecordAction};
 use gifdex_lexicons::net_gifdex as gifdex_lexicons;
 use jacquard_common::types::collection::Collection;
 use sqlx::query;
@@ -66,6 +69,7 @@ use std::sync::Arc;
                 RecordAction::Create { .. } => "create",
                 RecordAction::Update { .. } => "update",
                 RecordAction::Delete => "delete",
+                _ => "unknown",
             }),
             _ => None,
         },
@@ -89,38 +93,38 @@ pub async fn handle_event(state: Arc<AppState>, data: EventData<'static>) -> any
                     record: payload, ..
                 } => match record.collection.as_str() {
                     gifdex_lexicons::feed::post::Post::NSID => {
-                        let json_str = serde_json::to_string(&payload.raw())?;
-                        let post: gifdex_lexicons::feed::post::Post =
-                            serde_json::from_str(&json_str)?;
-                        handle_post_create(&record, &post, &mut tx, &state).await?
+                        handle_post_create(&record, &payload.deserialize()?, &mut tx, &state)
+                            .await?
                     }
                     gifdex_lexicons::feed::favourite::Favourite::NSID => {
-                        let json_str = serde_json::to_string(&payload.raw())?;
-                        let favourite: gifdex_lexicons::feed::favourite::Favourite =
-                            serde_json::from_str(&json_str)?;
-                        handle_favourite_create_event(&record, &favourite, &mut tx, &state).await?
+                        handle_favourite_create_event(
+                            &record,
+                            &payload.deserialize()?,
+                            &mut tx,
+                            &state,
+                        )
+                        .await?
                     }
                     gifdex_lexicons::actor::profile::Profile::NSID => {
-                        let json_str = serde_json::to_string(&payload.raw())?;
-                        let profile: gifdex_lexicons::actor::profile::Profile =
-                            serde_json::from_str(&json_str)?;
-                        handle_profile_create_event(&record, &profile, &mut tx, &state).await?
+                        handle_profile_create_event(
+                            &record,
+                            &payload.deserialize()?,
+                            &mut tx,
+                            &state,
+                        )
+                        .await?
                     }
                     gifdex_lexicons::labeler::label::Label::NSID => {
-                        let json_str = serde_json::to_string(&payload.raw())?;
-                        let label: gifdex_lexicons::labeler::label::Label =
-                            serde_json::from_str(&json_str)?;
-                        handle_label_create_event(&record, &label, &mut tx, &state).await?
+                        handle_label_create_event(&record, &payload.deserialize()?, &mut tx, &state)
+                            .await?
                     }
                     gifdex_lexicons::labeler::rule::Rule::NSID => {
-                        let json_str = serde_json::to_string(&payload.raw())?;
-                        let rule: gifdex_lexicons::labeler::rule::Rule =
-                            serde_json::from_str(&json_str)?;
-                        handle_rule_create_event(&record, &rule, &mut tx, &state).await?
+                        handle_rule_create_event(&record, &payload.deserialize()?, &mut tx, &state)
+                            .await?
                     }
                     collection @ _ => {
                         tracing::error!(
-                            "No record create/update handler for collection {collection} - please ensure tap is sending the correct records."
+                            "No record create/update handler for collection '{collection}': please ensure tap is sending the correct collections."
                         );
                         bail!("No registered create/update handler for record");
                     }
@@ -142,13 +146,17 @@ pub async fn handle_event(state: Arc<AppState>, data: EventData<'static>) -> any
                     gifdex_lexicons::labeler::rule::Rule::NSID => {
                         handle_rule_delete_event(&record, &mut tx, &state).await?
                     }
-                    collection @ _ => {
+                    collection => {
                         tracing::error!(
-                            "No record delete handler for collection {collection} - please ensure tap is sending the correct records."
+                            "No record delete handler for collection '{collection}': please ensure tap is sending the correct collections."
                         );
                         bail!("No registered delete handler for record");
                     }
                 },
+                operation => {
+                    tracing::error!("Unknown operation '{operation:?}'");
+                    bail!("No registered handlers for operation {operation:?}");
+                }
             }
 
             // Update repository revision.
@@ -165,8 +173,9 @@ pub async fn handle_event(state: Arc<AppState>, data: EventData<'static>) -> any
 
             Ok(())
         }
-        etype @ _ => {
-            panic!("unknown event data type: {etype:?}");
+        event_type => {
+            tracing::error!("Unknown event data type '{event_type:?}");
+            bail!("unknown event data type: {event_type:?}");
         }
     }
 }

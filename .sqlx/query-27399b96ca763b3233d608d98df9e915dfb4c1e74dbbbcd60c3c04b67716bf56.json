@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO posts (did, rkey, title, media_blob_cid, media_blob_mime, media_blob_alt, media_blob_width, media_blob_height, tags,  created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT(did, rkey) DO UPDATE SET title = excluded.title, media_blob_alt = excluded.media_blob_alt, tags = excluded.tags, edited_at = extract(epoch from now())::BIGINT",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        "Int4",
+        "TextArray",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "27399b96ca763b3233d608d98df9e915dfb4c1e74dbbbcd60c3c04b67716bf56"
+}

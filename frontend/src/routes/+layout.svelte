@@ -3,6 +3,7 @@
 	import AuthenticationDialog from '$lib/components/auth/AuthenticationDialog.svelte';
 	import SiteFooter from '$lib/components/site/SiteFooter.svelte';
 	import SiteHeader from '$lib/components/site/SiteHeader.svelte';
+	import '$lib/styles/behaviour.css';
 	import '$lib/styles/reset.css';
 	import '$lib/styles/theme.css';
 	import '@fontsource-variable/geist';
@@ -11,6 +12,7 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<title>Gifdex</title>
 </svelte:head>
 
 <div class="layout">

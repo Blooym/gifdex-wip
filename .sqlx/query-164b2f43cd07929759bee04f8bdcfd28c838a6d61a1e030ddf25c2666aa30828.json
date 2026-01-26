@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO labeler_rules (\n            rkey, did, name, description, behaviour,\n            default_setting, adult_content, takedown,\n            created_at, indexed_at\n        ) VALUES (\n            $1, $2, $3, $4, $5::TEXT::labeler_behaviour, $6::TEXT::labeler_behaviour_setting, $7, $8,\n            $9, extract(epoch from now())::BIGINT\n        )\n        ON CONFLICT(did, rkey) DO UPDATE SET\n            name = excluded.name,\n            description = excluded.description,\n            behaviour = excluded.behaviour,\n            default_setting = excluded.default_setting,\n            adult_content = excluded.adult_content,\n            takedown = excluded.takedown,\n            created_at = excluded.created_at,\n            edited_at = extract(epoch from now())::BIGINT",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "164b2f43cd07929759bee04f8bdcfd28c838a6d61a1e030ddf25c2666aa30828"
+}

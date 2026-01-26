@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accounts SET rev = $2 WHERE did = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c3aaf17bcbfeeb3feb15e70d59952201576f7e01e24b2656d7253b274b5cf38d"
+}

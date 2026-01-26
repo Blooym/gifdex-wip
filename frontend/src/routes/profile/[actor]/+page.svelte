@@ -50,7 +50,8 @@
 				authStore.client.call(NetGifdexFeedGetPostsByActor, {
 					params: {
 						actor: data.actor as Did,
-						limit: INITIAL_LOADED_POSTS
+						limit: INITIAL_LOADED_POSTS,
+						sortBy: 'newest'
 					}
 				})
 			);
@@ -73,6 +74,7 @@
 					params: {
 						actor: data.actor as Did,
 						limit: PER_PAGE_LOADED_POSTS,
+						sortBy: 'newest',
 						cursor
 					}
 				})

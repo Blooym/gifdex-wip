@@ -18,8 +18,7 @@
 #[serde(rename_all = "camelCase")]
 pub struct Annotate<'a> {
     pub adult_content: bool,
-    #[serde(borrow)]
-    pub default_setting: jacquard_common::CowStr<'a>,
+    pub default_setting: AnnotateDefaultSetting,
 }
 
 pub mod annotate_state {
@@ -32,37 +31,37 @@ pub mod annotate_state {
     }
     /// State trait tracking which required fields have been set
     pub trait State: sealed::Sealed {
-        type DefaultSetting;
         type AdultContent;
+        type DefaultSetting;
     }
     /// Empty state - all required fields are unset
     pub struct Empty(());
     impl sealed::Sealed for Empty {}
     impl State for Empty {
-        type DefaultSetting = Unset;
         type AdultContent = Unset;
-    }
-    ///State transition - sets the `default_setting` field to Set
-    pub struct SetDefaultSetting<S: State = Empty>(PhantomData<fn() -> S>);
-    impl<S: State> sealed::Sealed for SetDefaultSetting<S> {}
-    impl<S: State> State for SetDefaultSetting<S> {
-        type DefaultSetting = Set<members::default_setting>;
-        type AdultContent = S::AdultContent;
+        type DefaultSetting = Unset;
     }
     ///State transition - sets the `adult_content` field to Set
     pub struct SetAdultContent<S: State = Empty>(PhantomData<fn() -> S>);
     impl<S: State> sealed::Sealed for SetAdultContent<S> {}
     impl<S: State> State for SetAdultContent<S> {
-        type DefaultSetting = S::DefaultSetting;
         type AdultContent = Set<members::adult_content>;
+        type DefaultSetting = S::DefaultSetting;
+    }
+    ///State transition - sets the `default_setting` field to Set
+    pub struct SetDefaultSetting<S: State = Empty>(PhantomData<fn() -> S>);
+    impl<S: State> sealed::Sealed for SetDefaultSetting<S> {}
+    impl<S: State> State for SetDefaultSetting<S> {
+        type AdultContent = S::AdultContent;
+        type DefaultSetting = Set<members::default_setting>;
     }
     /// Marker types for field names
     #[allow(non_camel_case_types)]
     pub mod members {
-        ///Marker type for the `default_setting` field
-        pub struct default_setting(());
         ///Marker type for the `adult_content` field
         pub struct adult_content(());
+        ///Marker type for the `default_setting` field
+        pub struct default_setting(());
     }
 }
 
@@ -71,7 +70,7 @@ pub struct AnnotateBuilder<'a, S: annotate_state::State> {
     _phantom_state: ::core::marker::PhantomData<fn() -> S>,
     __unsafe_private_named: (
         ::core::option::Option<bool>,
-        ::core::option::Option<jacquard_common::CowStr<'a>>,
+        ::core::option::Option<AnnotateDefaultSetting>,
     ),
     _phantom: ::core::marker::PhantomData<&'a ()>,
 }
@@ -121,7 +120,7 @@ where
     /// Set the `defaultSetting` field (required)
     pub fn default_setting(
         mut self,
-        value: impl Into<jacquard_common::CowStr<'a>>,
+        value: impl Into<AnnotateDefaultSetting>,
     ) -> AnnotateBuilder<'a, annotate_state::SetDefaultSetting<S>> {
         self.__unsafe_private_named.1 = ::core::option::Option::Some(value.into());
         AnnotateBuilder {
@@ -135,8 +134,8 @@ where
 impl<'a, S> AnnotateBuilder<'a, S>
 where
     S: annotate_state::State,
-    S::DefaultSetting: annotate_state::IsSet,
     S::AdultContent: annotate_state::IsSet,
+    S::DefaultSetting: annotate_state::IsSet,
 {
     /// Build the final struct
     pub fn build(self) -> Annotate<'a> {
@@ -162,6 +161,91 @@ where
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AnnotateDefaultSetting {
+    Ignore,
+    Inform,
+    Warn,
+    Hide,
+}
+
+impl AnnotateDefaultSetting {
+    /// Returns the string representation of this enum variant.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Ignore => "ignore",
+            Self::Inform => "inform",
+            Self::Warn => "warn",
+            Self::Hide => "hide",
+        }
+    }
+}
+
+impl core::str::FromStr for AnnotateDefaultSetting {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ignore" => Ok(Self::Ignore),
+            "inform" => Ok(Self::Inform),
+            "warn" => Ok(Self::Warn),
+            "hide" => Ok(Self::Hide),
+            _ => {
+                Err(
+                    format!(
+                        "invalid value '{}', expected one of: {}", s,
+                        "ignore, inform, warn, hide"
+                    ),
+                )
+            }
+        }
+    }
+}
+
+impl TryFrom<&str> for AnnotateDefaultSetting {
+    type Error = String;
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
+        s.parse()
+    }
+}
+
+impl core::fmt::Display for AnnotateDefaultSetting {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl AsRef<str> for AnnotateDefaultSetting {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl serde::Serialize for AnnotateDefaultSetting {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for AnnotateDefaultSetting {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = <&str>::deserialize(deserializer)?;
+        s.parse().map_err(serde::de::Error::custom)
+    }
+}
+
+impl jacquard_common::IntoStatic for AnnotateDefaultSetting {
+    type Output = Self;
+    fn into_static(self) -> Self::Output {
+        self
+    }
+}
+
 fn lexicon_doc_net_gifdex_labeler_rule() -> ::jacquard_lexicon::lexicon::LexiconDoc<
     'static,
 > {
@@ -171,7 +255,7 @@ fn lexicon_doc_net_gifdex_labeler_rule() -> ::jacquard_lexicon::lexicon::Lexicon
         revision: None,
         description: None,
         defs: {
-            let mut map = ::std::collections::BTreeMap::new();
+            let mut map = ::alloc::collections::BTreeMap::new();
             map.insert(
                 ::jacquard_common::smol_str::SmolStr::new_static("annotate"),
                 ::jacquard_lexicon::lexicon::LexUserType::Object(::jacquard_lexicon::lexicon::LexObject {
@@ -185,7 +269,7 @@ fn lexicon_doc_net_gifdex_labeler_rule() -> ::jacquard_lexicon::lexicon::Lexicon
                     nullable: None,
                     properties: {
                         #[allow(unused_mut)]
-                        let mut map = ::std::collections::BTreeMap::new();
+                        let mut map = ::alloc::collections::BTreeMap::new();
                         map.insert(
                             ::jacquard_common::smol_str::SmolStr::new_static(
                                 "adultContent",
@@ -235,7 +319,7 @@ fn lexicon_doc_net_gifdex_labeler_rule() -> ::jacquard_lexicon::lexicon::Lexicon
                         nullable: None,
                         properties: {
                             #[allow(unused_mut)]
-                            let mut map = ::std::collections::BTreeMap::new();
+                            let mut map = ::alloc::collections::BTreeMap::new();
                             map.insert(
                                 ::jacquard_common::smol_str::SmolStr::new_static(
                                     "behaviour",
@@ -327,7 +411,7 @@ fn lexicon_doc_net_gifdex_labeler_rule() -> ::jacquard_lexicon::lexicon::Lexicon
                     nullable: None,
                     properties: {
                         #[allow(unused_mut)]
-                        let mut map = ::std::collections::BTreeMap::new();
+                        let mut map = ::alloc::collections::BTreeMap::new();
                         map.insert(
                             ::jacquard_common::smol_str::SmolStr::new_static("takedown"),
                             ::jacquard_lexicon::lexicon::LexObjectProperty::Boolean(::jacquard_lexicon::lexicon::LexBoolean {
@@ -357,7 +441,7 @@ impl<'a> ::jacquard_lexicon::schema::LexiconSchema for Annotate<'a> {
     }
     fn validate(
         &self,
-    ) -> ::std::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
+    ) -> ::core::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
         Ok(())
     }
 }
@@ -395,65 +479,65 @@ pub mod rule_state {
     }
     /// State trait tracking which required fields have been set
     pub trait State: sealed::Sealed {
-        type Description;
         type CreatedAt;
         type Name;
+        type Description;
         type Behaviour;
     }
     /// Empty state - all required fields are unset
     pub struct Empty(());
     impl sealed::Sealed for Empty {}
     impl State for Empty {
-        type Description = Unset;
         type CreatedAt = Unset;
         type Name = Unset;
+        type Description = Unset;
         type Behaviour = Unset;
-    }
-    ///State transition - sets the `description` field to Set
-    pub struct SetDescription<S: State = Empty>(PhantomData<fn() -> S>);
-    impl<S: State> sealed::Sealed for SetDescription<S> {}
-    impl<S: State> State for SetDescription<S> {
-        type Description = Set<members::description>;
-        type CreatedAt = S::CreatedAt;
-        type Name = S::Name;
-        type Behaviour = S::Behaviour;
     }
     ///State transition - sets the `created_at` field to Set
     pub struct SetCreatedAt<S: State = Empty>(PhantomData<fn() -> S>);
     impl<S: State> sealed::Sealed for SetCreatedAt<S> {}
     impl<S: State> State for SetCreatedAt<S> {
-        type Description = S::Description;
         type CreatedAt = Set<members::created_at>;
         type Name = S::Name;
+        type Description = S::Description;
         type Behaviour = S::Behaviour;
     }
     ///State transition - sets the `name` field to Set
     pub struct SetName<S: State = Empty>(PhantomData<fn() -> S>);
     impl<S: State> sealed::Sealed for SetName<S> {}
     impl<S: State> State for SetName<S> {
-        type Description = S::Description;
         type CreatedAt = S::CreatedAt;
         type Name = Set<members::name>;
+        type Description = S::Description;
+        type Behaviour = S::Behaviour;
+    }
+    ///State transition - sets the `description` field to Set
+    pub struct SetDescription<S: State = Empty>(PhantomData<fn() -> S>);
+    impl<S: State> sealed::Sealed for SetDescription<S> {}
+    impl<S: State> State for SetDescription<S> {
+        type CreatedAt = S::CreatedAt;
+        type Name = S::Name;
+        type Description = Set<members::description>;
         type Behaviour = S::Behaviour;
     }
     ///State transition - sets the `behaviour` field to Set
     pub struct SetBehaviour<S: State = Empty>(PhantomData<fn() -> S>);
     impl<S: State> sealed::Sealed for SetBehaviour<S> {}
     impl<S: State> State for SetBehaviour<S> {
-        type Description = S::Description;
         type CreatedAt = S::CreatedAt;
         type Name = S::Name;
+        type Description = S::Description;
         type Behaviour = Set<members::behaviour>;
     }
     /// Marker types for field names
     #[allow(non_camel_case_types)]
     pub mod members {
-        ///Marker type for the `description` field
-        pub struct description(());
         ///Marker type for the `created_at` field
         pub struct created_at(());
         ///Marker type for the `name` field
         pub struct name(());
+        ///Marker type for the `description` field
+        pub struct description(());
         ///Marker type for the `behaviour` field
         pub struct behaviour(());
     }
@@ -582,9 +666,9 @@ impl<'a, S: rule_state::State> RuleBuilder<'a, S> {
 impl<'a, S> RuleBuilder<'a, S>
 where
     S: rule_state::State,
-    S::Description: rule_state::IsSet,
     S::CreatedAt: rule_state::IsSet,
     S::Name: rule_state::IsSet,
+    S::Description: rule_state::IsSet,
     S::Behaviour: rule_state::IsSet,
 {
     /// Build the final struct
@@ -709,7 +793,7 @@ impl<'a> ::jacquard_lexicon::schema::LexiconSchema for Rule<'a> {
     }
     fn validate(
         &self,
-    ) -> ::std::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
+    ) -> ::core::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
         {
             let value = &self.description;
             {
@@ -882,7 +966,7 @@ impl<'a> ::jacquard_lexicon::schema::LexiconSchema for Moderate<'a> {
     }
     fn validate(
         &self,
-    ) -> ::std::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
+    ) -> ::core::result::Result<(), ::jacquard_lexicon::validation::ConstraintError> {
         Ok(())
     }
 }

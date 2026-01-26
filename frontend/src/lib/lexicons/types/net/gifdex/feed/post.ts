@@ -10,16 +10,6 @@ const _mainSchema = /*#__PURE__*/ v.record(
      * Client-declared timestamp when this post was originally created.
      */
     createdAt: /*#__PURE__*/ v.datetimeString(),
-    /**
-     * Indicates human language of post content, including title and the media itself.
-     * @maxLength 3
-     */
-    languages: /*#__PURE__*/ v.optional(
-      /*#__PURE__*/ v.constrain(
-        /*#__PURE__*/ v.array(/*#__PURE__*/ v.languageCodeString()),
-        [/*#__PURE__*/ v.arrayLength(0, 3)],
-      ),
-    ),
     get media() {
       return postMediaSchema;
     },

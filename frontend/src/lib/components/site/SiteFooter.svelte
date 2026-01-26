@@ -1,7 +1,7 @@
 <footer>
 	<div class="footer-content">
-		<a href="/privacy" class="footer-link">Privacy Policy</a>
-		<a href="/terms" class="footer-link">Terms & Conditions</a>
+		<a href="/legal/privacy" class="footer-link">Privacy Policy</a>
+		<a href="/legal/terms" class="footer-link">Terms & Conditions</a>
 	</div>
 </footer>
 

@@ -1,6 +1,6 @@
 use crate::AppState;
 use anyhow::Result;
-use floodgate::api::RecordEventData;
+use doubletap::types::RecordEventData;
 use gifdex_lexicons::net_gifdex::{self, labeler::rule::Rule};
 use jacquard_common::types::collection::Collection;
 use sqlx::{PgTransaction, query};

@@ -50,7 +50,7 @@
 		event.stopPropagation();
 
 		if (!authStore.isAuthenticated()) {
-			authStore.promptSignIn = true;
+			authStore.showSignInDialog = true;
 			return;
 		}
 
@@ -101,6 +101,7 @@
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- TODO: Fix above -->
 <div class="post-card" onclick={navigateToPost} role="button" tabindex="0">
 	{#if post.media}
 		<div class="media-container" style="padding-bottom: {aspectRatio}%;">
@@ -168,7 +169,7 @@
 
 <style>
 	.post-card {
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		overflow: hidden;
 		transition: transform 0.2s;
 		width: 100%;
@@ -278,8 +279,8 @@
 
 	.favourite-button {
 		padding: 6px 8px;
-		border-radius: 6px;
-		border: 2px solid var(--ctp-surface0);
+		border-radius: var(--radius-sm);
+		border: var(--border-md) solid var(--ctp-surface0);
 		background: transparent;
 		display: flex;
 		align-items: center;
@@ -287,7 +288,7 @@
 		gap: 4px;
 		cursor: pointer;
 		transition: all 0.2s;
-		font-size: 12px;
+		font-size: 0.75rem;
 		flex-shrink: 0;
 		color: var(--ctp-text);
 	}

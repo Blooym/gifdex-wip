@@ -1,6 +1,6 @@
 use crate::AppState;
 use anyhow::Result;
-use floodgate::api::RecordEventData;
+use doubletap::types::RecordEventData;
 use gifdex_lexicons::net_gifdex;
 use sqlx::{PgTransaction, query};
 use tracing::{error, info};
@@ -22,7 +22,7 @@ pub async fn handle_rule_create_event(
         net_gifdex::labeler::rule::RuleBehaviour::Moderate(moderate) => {
             ("moderate", None, None, Some(moderate.takedown))
         }
-        behaviour @ _ => {
+        behaviour => {
             tracing::warn!("Rejected record: unknown rule_behaviour: {behaviour:?}");
             return Ok(());
         }

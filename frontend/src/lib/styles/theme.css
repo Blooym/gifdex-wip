@@ -68,54 +68,36 @@ html {
 	}
 }
 
-/* Design Tokens */
 :root {
-	/* Spacing */
-	--space-xs: 4px;
-	--space-sm: 8px;
-	--space-md: 12px;
-	--space-lg: 16px;
-	--space-xl: 24px;
-
-	/* Border Radius */
+	/*
+	 * Border Radius
+	 *
+	 * --radius-sm: Small interactive elements (buttons, dropdown items)
+	 * --radius-md: Medium containers (e.g cards, inputs, triggers and tooltips)
+	 * --radius-lg: Large containers (e.g dialog and dropdown menus)
+	 * --radius-full: Circular element
+	 */
 	--radius-sm: 6px;
 	--radius-md: 8px;
 	--radius-lg: 10px;
 	--radius-full: 9999px;
 
-	--border-sm: 2px;
-	--border-md: 4px;
-	--border-lg: 6px;
-
-	/* Font Sizes */
-	--text-xs: 0.75rem;
-	--text-sm: 0.875rem;
-	--text-base: 1rem;
-	--text-lg: 1.125rem;
-	--text-xl: 1.25rem;
-	--text-2xl: 1.5rem;
-
-	/* Shadows */
-	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
-	--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
-	--shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
-
-	/* Transitions */
-	--transition-fast: 150ms;
-	--transition-base: 200ms;
+	/*
+	 * Border Width
+	 *
+	 * --border-sm: Container borders
+	 * --border-md: Interactive elements
+	 */
+	--border-sm: 1px;
+	--border-md: 2px;
 }
 
-/* TODO: Refactor into link component instead. */
-
-a {
-	color: var(--ctp-mauve);
-	text-decoration: none;
-	&:hover {
-		text-decoration: underline;
-	}
+html {
+	height: 100vh;
 }
 
 body {
+	min-height: 100vh;
 	font-family:
 		'Geist Variable',
 		-apple-system,
@@ -123,5 +105,4 @@ body {
 		sans-serif;
 	background: var(--ctp-base);
 	color: var(--ctp-text);
-	min-height: 100vh;
 }

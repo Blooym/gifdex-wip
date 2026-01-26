@@ -1,22 +1,32 @@
 <script lang="ts">
 	import type { HTMLInputAttributes } from 'svelte/elements';
 
-	interface Props extends HTMLInputAttributes {}
+	type Surface = 'base' | 'mantle';
 
-	let { ...restProps }: Props = $props();
+	interface Props extends Omit<HTMLInputAttributes, 'size' | 'value'> {
+		surface?: Surface;
+		size?: 'small' | 'normal';
+		value?: string;
+		class?: string;
+	}
+
+	let {
+		surface = 'base',
+		size = 'normal',
+		value = $bindable(''),
+		class: className = '',
+		...restProps
+	}: Props = $props();
 </script>
 
-<input {...restProps} />
+<input class="{surface} {size} {className}" bind:value {...restProps} />
 
 <style>
 	input {
 		width: 100%;
-		padding: 10px 16px;
-		border: 2px solid var(--ctp-surface0);
-		border-radius: 8px;
-		background: var(--ctp-base);
+		border-radius: var(--radius-md);
 		color: var(--ctp-text);
-		font-size: 14px;
+		font-family: inherit;
 		transition: border-color 0.2s;
 	}
 
@@ -25,7 +35,34 @@
 		border-color: var(--ctp-mauve);
 	}
 
+	/* Surface variants */
+	input.base {
+		background: var(--ctp-mantle);
+		border: var(--border-md) solid var(--ctp-surface0);
+	}
+
+	input.mantle {
+		background: var(--ctp-crust);
+		border: var(--border-md) solid var(--ctp-surface1);
+	}
+
 	input::placeholder {
 		color: var(--ctp-subtext0);
+	}
+
+	/* Sizes */
+	.small {
+		padding: 6px 12px;
+		font-size: 0.75rem;
+	}
+
+	.normal {
+		padding: 10px 16px;
+		font-size: 0.875rem;
+	}
+
+	.large {
+		padding: 14px 20px;
+		font-size: 1rem;
 	}
 </style>
